@@ -1,7 +1,7 @@
 # 🌿 Marty's Plant Haven
 
-A personal plant catalogue, care tracker & garden map — 83 plants (51
-outdoor, 32 indoor, including greenhouse/hydroponics) with photos, origin,
+A personal plant catalogue, care tracker & garden map — 96 plants (51
+outdoor, 32 indoor, 13 greenhouse/hydroponics) with photos, origin,
 care instructions, propagation methods, hardiness, classification,
 sowing/flowering times, and time to maturity for each plant.
 

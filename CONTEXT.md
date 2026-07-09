@@ -6,8 +6,9 @@ as a PWA at [martyshaven.netlify.app](https://martyshaven.netlify.app/).
 Built iteratively with Claude, plant by plant / batch by batch.
 
 ## Current State (as of 2026-07-09)
-- **83 plants total:** 51 outdoor (numeric ids) + 32 indoor (ids `i01`–`i32`),
-  including a Greenhouse / Hydroponics tag category.
+- **96 plants total:** 51 outdoor (numeric ids), 32 indoor (ids
+  `i01`–`i32`), and 13 greenhouse/hydroponics (ids `h01`–`h13`) in a
+  separate `HYDRO_PLANTS` array.
 - **Stack:** React 18 (UMD, via unpkg) + `@babel/standalone@7.29.7`
   (pinned — `latest` resolves to Babel v8, which breaks JSX in non-module
   `<script>` tags), no build tooling, no bundler.
@@ -39,8 +40,9 @@ tags}` — indoor entries follow the same shape with string ids (`i01`, …).
 ## Adding new plants — workflow
 1. Identify plant species.
 2. Fetch a reference image if needed (e.g. Wikipedia REST summary API).
-3. Add a plant object to the outdoor or indoor array in `src/catalogue.jsx`
-   (next numeric id after 56 for outdoor, next `iNN` for indoor).
+3. Add a plant object to `OUTDOOR_PLANTS`, `INDOOR_PLANTS`, or
+   `HYDRO_PLANTS` in `src/catalogue.jsx` (next numeric id after 56 for
+   outdoor, next `iNN` for indoor, next `hNN` for greenhouse/hydro).
 4. Tag appropriately (include `Greenhouse`/`Hydroponics` tags if relevant).
 5. Rebuild `index.html` per the README's Updating section.
 6. Commit both `src/catalogue.jsx` and the rebuilt `index.html` together.
