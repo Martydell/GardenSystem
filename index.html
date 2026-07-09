@@ -501,6 +501,20 @@ function getUrgency(plant, careLog, type='watered'){
 const URG_COLOR = { overdue:'#ef4444', soon:'#f59e0b', ok:'#22c55e', unset:'#6b7280' };
 function plantCategory(p){ const id=String(p.id); return id.startsWith('h')?'hydro':id.startsWith('i')?'indoor':'outdoor'; }
 
+// Classifies a plant's watering need from its free-text `water` field into one of 3 irrigation levels.
+// Checked in this order since "Moderate to high" etc. should count as the higher need.
+function waterLevel(p){
+  const w=(p.water||'').toLowerCase();
+  if(w.includes('high'))return 'high';
+  if(w.includes('low'))return 'low';
+  return 'med';
+}
+const WATER_LEVEL_COLORS={
+  low: {bg:'#93c5fd',border:'#3b82f6',label:'Low'},
+  med: {bg:'#3b82f6',border:'#1e40af',label:'Medium'},
+  high:{bg:'#1e3a8a',border:'#0f2557',label:'High'},
+};
+
 function badgeForType(type){
   if(type==='hydro')  return {badge:'HYDRO',   color:'#d97706'};
   if(type==='indoor') return {badge:'INDOOR',  color:'#1e40af'};
@@ -2366,11 +2380,17 @@ function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPos,defau
                               onDragEnd={()=>setDragId(null)}
                               onClick={e=>{
                                 e.stopPropagation();
-                                if(mode==='place'&&!isDisabled)onSelect(p);
+                                if(mode==='place'&&!isDisabled){
+                                  if(clickTimerRef.current)clearTimeout(clickTimerRef.current);
+                                  clickTimerRef.current=setTimeout(()=>{onSelect(p);clickTimerRef.current=null;},230);
+                                }
                               }}
                               onDoubleClick={e=>{
                                 e.stopPropagation();
-                                if(mode==='place'&&!isDisabled)removeCell(x,y,p.id);
+                                if(mode==='place'&&!isDisabled){
+                                  if(clickTimerRef.current){clearTimeout(clickTimerRef.current);clickTimerRef.current=null;}
+                                  removeCell(x,y,p.id);
+                                }
                               }}
                               title={p.name+' — drag to move out, double-click to remove from this pot'}
                               style={{position:'relative',flex:'1 1 0',minWidth:0,borderRadius:3,overflow:'hidden',
@@ -2649,6 +2669,98 @@ function NotificationManager({allPlants, careLog}){
   );
 }
 
+// ─── IrrigationMap — read-only watering-need view derived from live map placements ──
+function IrrigationSection({title,storageKey,fallback,cfg,allPlants}){
+  const T=React.useContext(ThemeCtx);
+  const GP=4;
+  const pos=(()=>{
+    try{const s=JSON.parse(localStorage.getItem(storageKey)||'null');return s||fallback||{};}
+    catch{return fallback||{};}
+  })();
+  const {cols,rows,size}=cfg;
+  const gridW=cols*(size+GP)-GP, gridH=rows*(size+GP)-GP;
+  const entries=Object.entries(pos);
+  return (
+    <div style={{marginBottom:28}}>
+      <h3 style={{fontSize:16,fontWeight:700,color:T.text,marginBottom:10}}>{title}</h3>
+      {entries.length===0?(
+        <div style={{padding:20,textAlign:'center',color:T.sub,fontSize:13,
+          background:T.surface,borderRadius:10,border:'1px dashed '+T.border}}>
+          No plants placed on the {title} map yet.
+        </div>
+      ):(
+        <div style={{overflowX:'auto'}}>
+          <div style={{display:'grid',gridTemplateColumns:`repeat(${cols},${size}px)`,
+            gridTemplateRows:`repeat(${rows},${size}px)`,gap:GP,width:gridW,height:gridH}}>
+            {Array.from({length:rows},(_,y)=>Array.from({length:cols},(_,x)=>{
+              const key=`${x},${y}`;
+              const val=pos[key];
+              const plants=val?String(val).split(',').filter(Boolean)
+                .map(id=>allPlants.find(p=>String(p.id)===id)).filter(Boolean):[];
+              if(!plants.length){
+                return <div key={key} style={{width:size,height:size,borderRadius:8,
+                  border:'1px dashed '+T.border,background:T.surface}}/>;
+              }
+              const levels=plants.map(waterLevel);
+              const worst=levels.includes('high')?'high':levels.includes('med')?'med':'low';
+              const c=WATER_LEVEL_COLORS[worst];
+              const names=plants.map(p=>p.name).join(', ');
+              return (
+                <div key={key}
+                  title={plants.map(p=>p.name+' — '+WATER_LEVEL_COLORS[waterLevel(p)].label+' water need').join('\n')}
+                  style={{width:size,height:size,borderRadius:8,background:c.bg,
+                    border:'2px solid '+c.border,display:'flex',alignItems:'center',
+                    justifyContent:'center',padding:3,overflow:'hidden',cursor:'default'}}>
+                  <span style={{fontSize:8,color:'#fff',fontWeight:700,textAlign:'center',
+                    lineHeight:1.15,textShadow:'0 1px 2px rgba(0,0,0,.65)',
+                    display:'-webkit-box',WebkitLineClamp:4,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
+                    {names}
+                  </span>
+                </div>
+              );
+            }))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+function IrrigationMap({allPlants}){
+  const T=React.useContext(ThemeCtx);
+  const MAP_BASE_SIZE={courtyard:{cols:14,rows:8,size:76},garden:{cols:14,rows:9,size:76}};
+  function getCfg(k){
+    let ms={};
+    try{ms=JSON.parse(localStorage.getItem('map-settings')||'{}');}catch{}
+    return {...MAP_BASE_SIZE[k],...(ms[k]||{})};
+  }
+  return (
+    <div>
+      <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:12,flexWrap:'wrap'}}>
+        <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:0}}>&#x1F4A7; Irrigation System</h2>
+        <div style={{display:'flex',gap:14,alignItems:'center',marginLeft:'auto',flexWrap:'wrap'}}>
+          {['low','med','high'].map(k=>{
+            const c=WATER_LEVEL_COLORS[k];
+            return (
+              <div key={k} style={{display:'flex',alignItems:'center',gap:5}}>
+                <div style={{width:14,height:14,borderRadius:4,background:c.bg,border:'2px solid '+c.border}}/>
+                <span style={{fontSize:12,color:T.sub}}>{c.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <p style={{color:T.sub,fontSize:13,marginBottom:20}}>
+        Colour reflects each plant's watering need, worked out automatically from its care info
+        (Low / Medium / High). A shared pot is coloured by the highest need among its plants.
+        This mirrors whatever is currently placed on the Courtyard and Back Garden maps — change
+        placements there and this view updates to match.
+      </p>
+      <IrrigationSection title="Courtyard" storageKey="courtyard-map" fallback={COURTYARD_DEFAULT} cfg={getCfg('courtyard')} allPlants={allPlants}/>
+      <IrrigationSection title="Back Garden" storageKey="garden-map" fallback={null} cfg={getCfg('garden')} allPlants={allPlants}/>
+    </div>
+  );
+}
+
 // ─── Catalogue ─────────────────────────────────────────────────────────────
 function Catalogue(){
   const [dark,    setDark]    = React.useState(true);
@@ -2684,8 +2796,8 @@ function Catalogue(){
     });
     window.location.reload();
   }
-  const MAP_DEFAULTS={garden:'Back Garden',courtyard:'Courtyard',greenhouse:'Greenhouse',indoor:'Indoor'};
-  const MAP_ICONS={garden:'&#x1F33B;',courtyard:'&#x2600;&#xFE0F;',greenhouse:'&#x1F9EA;',indoor:'&#x1F3E0;'};
+  const MAP_DEFAULTS={garden:'Back Garden',courtyard:'Courtyard',greenhouse:'Greenhouse',indoor:'Indoor',irrigation:'Irrigation System'};
+  const MAP_ICONS={garden:'&#x1F33B;',courtyard:'&#x2600;&#xFE0F;',greenhouse:'&#x1F9EA;',indoor:'&#x1F3E0;',irrigation:'&#x1F4A7;'};
   const [mapNames,setMapNames]=React.useState(()=>{
     try{return JSON.parse(localStorage.getItem('map-names')||'{}');}catch{return {};}
   });
@@ -3021,7 +3133,7 @@ function Catalogue(){
               <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16,flexWrap:'wrap'}}>
                 <h2 style={{fontSize:20,fontWeight:700,color:T.text}}>&#x1F5FA; Plant Maps</h2>
                 <div style={{display:'flex',gap:6,marginLeft:'auto',flexWrap:'wrap',alignItems:'center'}}>
-                  {['indoor','courtyard','garden','greenhouse'].map(k=>(
+                  {['indoor','courtyard','garden','greenhouse','irrigation'].map(k=>(
                     <div key={k} style={{display:'flex',alignItems:'center',gap:0}}>
                       {editingMap===k?(
                         <input autoFocus value={editingName}
@@ -3075,7 +3187,7 @@ function Catalogue(){
             {/* Compact bar shown only in full-screen mode */}
             {mapFull&&(
               <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6,flexWrap:'wrap'}}>
-                {['indoor','courtyard','garden','greenhouse'].map(k=>(
+                {['indoor','courtyard','garden','greenhouse','irrigation'].map(k=>(
                   <button key={k} onClick={()=>setMapTab(k)} style={{
                     padding:'4px 12px',borderRadius:20,border:'1px solid '+T.border,cursor:'pointer',fontSize:11,
                     background:mapTab===k?T.green:T.input,color:mapTab===k?'#fff':T.text,
@@ -3092,7 +3204,7 @@ function Catalogue(){
               </div>
             )}
             {/* Map settings panel */}
-            {showMapSettings&&!mapFull&&(()=>{
+            {showMapSettings&&!mapFull&&mapTab!=='irrigation'&&(()=>{
               const cfg=getMapCfg(mapTab);
               const def=MAP_SIZE_DEFAULTS[mapTab];
               const isCustom=JSON.stringify(cfg)!==JSON.stringify(def);
@@ -3144,13 +3256,14 @@ function Catalogue(){
                 </div>
               );
             })()}
-            {!mapFull&&<p style={{color:T.sub,fontSize:13,marginBottom:12}}>
+            {!mapFull&&mapTab!=='irrigation'&&<p style={{color:T.sub,fontSize:13,marginBottom:12}}>
               Drag plants onto the grid &bull; Double-click to remove (in &#x1F331; Place mode) &bull; &#x270F;&#xFE0F; rename map
             </p>}
             {mapTab==='garden'&&(()=>{const c=getMapCfg('garden');return<MapGrid storageKey="garden-map" cols={c.cols} rows={c.rows} size={c.size} zones={null} defaultFilter="outdoor" allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
             {mapTab==='courtyard'&&(()=>{const c=getMapCfg('courtyard');return<MapGrid storageKey="courtyard-map" cols={c.cols} rows={c.rows} size={c.size} zones={COURTYARD_ZONES} defaultFilter="outdoor" defaultPos={COURTYARD_DEFAULT} defaultText={COURTYARD_TEXT} allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
             {mapTab==='greenhouse'&&(()=>{const c=getMapCfg('greenhouse');return<MapGrid storageKey="greenhouse-map" cols={c.cols} rows={c.rows} size={c.size} zones={GREENHOUSE_ZONES} defaultFilter="hydro" defaultPos={GREENHOUSE_DEFAULT} allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
             {mapTab==='indoor'&&(()=>{const c=getMapCfg('indoor');return<MapGrid storageKey="indoor-map" cols={c.cols} rows={c.rows} size={c.size} zones={INDOOR_ZONES} defaultFilter="indoor" allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
+            {mapTab==='irrigation'&&<IrrigationMap allPlants={allPlants}/>}
           </div>
         )}
 
