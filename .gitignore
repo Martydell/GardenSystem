@@ -1,0 +1,4 @@
+.DS_Store
+*.tmp
+img_source/*
+!img_source/.gitkeep
