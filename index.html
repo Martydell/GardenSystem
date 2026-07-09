@@ -60,7 +60,9 @@ const WIKI_SLUGS = {
   45:"Solanum_tuberosum",46:"Ficus_carica",47:"Tagetes_patula",49:"Trachelospermum_jasminoides",50:"Citrus_limon",
   51:"Trachycarpus_fortunei",52:"Pelargonium_zonale",53:"Carex_oshimensis",
   54:"Camellia_japonica",55:"Libertia_ixioides",56:"Hylotelephium_sieboldii",
-  57:"Hedera_helix",58:"Juniperus_squamata",59:"Musa_basjoo",61:"Aristaloe"
+  57:"Hedera_helix",58:"Juniperus_squamata",59:"Musa_basjoo",61:"Aristaloe",
+  62:"Photinia_%C3%97_fraseri",63:"Murraya_paniculata",64:"Hatiora_salicornioides",
+  65:"Antirrhinum_majus",66:"Begonia_semperflorens",67:"Salvia_nemorosa",68:"Tradescantia_fluminensis"
 };
 
 const INDOOR_WIKI_SLUGS = {
@@ -126,6 +128,13 @@ const STATIC_PHOTO_URLS = {
   59:"https://upload.wikimedia.org/wikipedia/commons/4/44/Musa_basjooSochi1.JPG",
   60:"https://upload.wikimedia.org/wikipedia/commons/e/ee/Sedum_kimnachii_kz1.jpg",
   61:"https://upload.wikimedia.org/wikipedia/commons/e/e6/AloeAristata.jpg",
+  62:"https://upload.wikimedia.org/wikipedia/commons/8/8e/Photinia_fraseri_B.JPG",
+  63:"https://upload.wikimedia.org/wikipedia/commons/8/8b/Murraya_paniculata_05.jpg",
+  64:"https://upload.wikimedia.org/wikipedia/commons/c/c2/Hatiora_salicornioides_ies3.jpg",
+  65:"https://upload.wikimedia.org/wikipedia/commons/6/6f/Antirrhinum_majus_BCBG_%2802%29.jpg",
+  66:"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Begonia_x_semperflorens%2C_Gustave_rouge.jpg/3840px-Begonia_x_semperflorens%2C_Gustave_rouge.jpg",
+  67:"https://upload.wikimedia.org/wikipedia/commons/1/1b/Salvia_nemorosa-IMG_3624.jpg",
+  68:"https://upload.wikimedia.org/wikipedia/commons/e/ef/Tradescantia_fluminensis_%28Flowers%29.jpg",
   "i21":"https://upload.wikimedia.org/wikipedia/commons/4/49/Peace_lily_-_1_-_cropped.jpg",
   "i22":"https://upload.wikimedia.org/wikipedia/commons/1/1e/Phalaenopsis_philippinensis_NationalOrchidGarden-Singapore.jpg",
   "i23":"https://upload.wikimedia.org/wikipedia/commons/e/ea/NKN-2007-06-13_114250_Hoya_Carnosa_%28Yvan_Leduc_author_for_Wikipedia%29.jpg",
@@ -207,7 +216,14 @@ const OUTDOOR_PLANTS = [
   {id:58,n:"58",name:"Blue Star Juniper",latin:"Juniperus squamata 'Blue Star'",family:"Cupressaceae",origin:"Cultivar of species native to the Himalayas / China",type:"Dwarf evergreen conifer",light:"Full sun to partial shade",water:"Low — drought tolerant once established",humidity:"Any",temp:"Hardy to -20°C",height:"0.5m spread, low mounding habit",flowering:"Non-flowering conifer — produces small cones",flower:"N/A",hardiness:"H7 — fully hardy",toxic:"Mildly toxic if ingested",difficulty:"Easy",desc:"Low, mounding dwarf conifer with dense silvery-blue needle-like foliage, grown in a container in the border. Best guess ID from photo — confirm cultivar if known.",soil:"Well-drained, tolerates poor soil",care:"Minimal — occasional light trim to maintain shape.",tags:["Evergreen","Structural","Low-maintenance","Toxic to pets","Unverified ID"],placement:"Container or border, full sun for best foliage colour",sow:"Propagate from semi-ripe cuttings in summer"},
   {id:59,n:"59",name:"Musa (Banana)",latin:"Musa basjoo",family:"Musaceae",origin:"Ryukyu Islands, Japan",type:"Herbaceous perennial (hardy banana)",light:"Full sun to partial shade, sheltered from wind",water:"High — keep consistently moist in growing season",humidity:"Moderate–high",temp:"Hardy to -15°C at the root with winter mulching/wrapping",height:"Up to 2–3m in a UK garden/container",flowering:"Rarely flowers outdoors in UK climate",flower:"Pale yellow bract, rarely seen in UK",hardiness:"H5 — hardy with winter protection",toxic:"Non-toxic",difficulty:"Moderate — needs winter protection",desc:"Large paddle-shaped leaves, maroon-spotted on this specimen, grown as an architectural foliage plant near the house wall.",soil:"Rich, moist, well-drained",care:"Wrap stem with fleece/straw in winter; remove wind-damaged leaves.",tags:["Architectural","Statement","Non-toxic","Tropical look"],placement:"Sheltered, sunny spot against the house wall",sow:"Divide suckers/offsets in spring"},
   {id:60,n:"60",name:"Mexican Sedum",latin:"Sedum kimnachii",family:"Crassulaceae",origin:"Mexico",type:"Succulent groundcover",light:"Full sun",water:"Low — drought tolerant",humidity:"Low",temp:"Hardy to around -5°C; best with winter protection",height:"5–10cm, spreading mat",flowering:"Summer",flower:"Small star-shaped yellow flowers",hardiness:"H3 — half hardy",toxic:"Non-toxic",difficulty:"Easy",desc:"Low mounding succulent with bright green jelly-bean foliage and clusters of small yellow star-shaped flowers, in the shed/greenhouse corner.",soil:"Gritty, very well-drained",care:"Minimal water; protect from prolonged wet or frost.",tags:["Succulent","Low-maintenance","Non-toxic"],placement:"Container, full sun, sheltered corner near the shed",sow:"Propagate from leaf or stem cuttings"},
-  {id:61,n:"61",name:"Lace Aloe",latin:"Aristaloe aristata (syn. Aloe aristata)",family:"Asphodelaceae",origin:"South Africa",type:"Rosette-forming succulent",light:"Full sun to partial shade",water:"Low — drought tolerant",humidity:"Low",temp:"Hardy to -5°C for short periods; best protected in hard frost",height:"10–15cm rosette",flowering:"Summer",flower:"Coral-orange tubular spikes",hardiness:"H3 — half hardy",toxic:"Mildly toxic if ingested",difficulty:"Easy",desc:"Compact spiky rosette succulent with white lace-like markings on dark green leaves, in a container in the planter row.",soil:"Gritty, very well-drained",care:"Water sparingly; bring under cover in hard frost.",tags:["Succulent","Low-maintenance","Toxic to pets"],placement:"Container, full sun, near the planter/seating area",sow:"Offsets/pups can be divided and replanted"}
+  {id:61,n:"61",name:"Lace Aloe",latin:"Aristaloe aristata (syn. Aloe aristata)",family:"Asphodelaceae",origin:"South Africa",type:"Rosette-forming succulent",light:"Full sun to partial shade",water:"Low — drought tolerant",humidity:"Low",temp:"Hardy to -5°C for short periods; best protected in hard frost",height:"10–15cm rosette",flowering:"Summer",flower:"Coral-orange tubular spikes",hardiness:"H3 — half hardy",toxic:"Mildly toxic if ingested",difficulty:"Easy",desc:"Compact spiky rosette succulent with white lace-like markings on dark green leaves, in a container in the planter row.",soil:"Gritty, very well-drained",care:"Water sparingly; bring under cover in hard frost.",tags:["Succulent","Low-maintenance","Toxic to pets"],placement:"Container, full sun, near the planter/seating area",sow:"Offsets/pups can be divided and replanted"},
+  {id:62,n:"62",name:"Photinia",latin:"Photinia × fraseri",family:"Rosaceae",origin:"Cultivar hybrid (parent species from East Asia)",type:"Evergreen shrub",light:"Full sun to partial shade",water:"Moderate",humidity:"Any",temp:"Hardy to about -15°C once established",height:"Up to 1.5–2m as a container/hedge shrub",flowering:"Small white flowers in spring (often trimmed off)",flower:"White clusters, spring",hardiness:"H5 — hardy",toxic:"Mildly toxic if ingested",difficulty:"Easy",desc:"Evergreen shrub grown for its bright red new growth against older green leaves ('Green & Red' on the hand-drawn map).",soil:"Well-drained, tolerates most soils",care:"Trim in spring/summer to encourage fresh red growth flushes.",tags:["Evergreen","Structural","Low-maintenance","Toxic to pets"],placement:"Border or large container, sun to part shade",sow:"Semi-ripe cuttings in summer"},
+  {id:63,n:"63",name:"Orange Jasmine 'Kylie'",latin:"Murraya paniculata 'Kylie'",family:"Rutaceae",origin:"Cultivar of species native to South/Southeast Asia",type:"Compact evergreen shrub",light:"Full sun to bright partial shade",water:"Moderate",humidity:"Moderate",temp:"Hardy to about 5°C — frost tender, container grown in the UK",height:"Dwarf cultivar, 0.5–1m",flowering:"Repeat-flowering through summer",flower:"Small fragrant white star flowers",hardiness:"H2 — frost tender, bring under cover in winter",toxic:"Non-toxic",difficulty:"Moderate",desc:"Dwarf orange jasmine near the spiral staircase, grown for its fragrant white flowers.",soil:"Well-drained, humus-rich container compost",care:"Bring inside/into greenhouse before frost. Feed in growing season.",tags:["Fragrant","Container","Evergreen"],placement:"Sheltered spot near the staircase in summer; frost-free overwinter",sow:"Semi-ripe cuttings in summer"},
+  {id:64,n:"64",name:"Dancing Bones Cactus",latin:"Hatiora salicornioides",family:"Cactaceae",origin:"Brazil",type:"Epiphytic cactus",light:"Bright indirect light to partial shade",water:"Low-moderate — let dry between waterings",humidity:"Moderate",temp:"Hardy to about 5°C, best protected below that",height:"20–30cm, branching succulent stems",flowering:"Late winter–spring",flower:"Small yellow-orange bell flowers",hardiness:"H2 — frost tender",toxic:"Non-toxic",difficulty:"Easy",desc:"Segmented, bottle-shaped succulent stems in a pot near the pond.",soil:"Free-draining cactus/succulent compost",care:"Water sparingly; protect from frost.",tags:["Succulent","Low-maintenance","Non-toxic"],placement:"Container near the pond, bright indirect light",sow:"Stem cuttings, allowed to callous before potting"},
+  {id:65,n:"65",name:"Snapdragon",latin:"Antirrhinum majus",family:"Plantaginaceae",origin:"Mediterranean",type:"Bedding perennial (grown as annual)",light:"Full sun",water:"Moderate",humidity:"Any",temp:"Hardy to about -5°C; often grown as an annual",height:"20–60cm",flowering:"Summer–autumn",flower:"Tall spikes of tubular two-lipped flowers, various colours",hardiness:"H3 — half hardy",toxic:"Non-toxic",difficulty:"Easy",desc:"Bedding snapdragon near the spiral staircase.",soil:"Fertile, well-drained",care:"Deadhead to prolong flowering; feed fortnightly in bloom.",tags:["Bedding","Non-toxic","Colourful"],placement:"Container or border, full sun near the staircase",sow:"Sow indoors late winter, plant out after frost"},
+  {id:66,n:"66",name:"Begonia",latin:"Begonia cucullata (syn. semperflorens)",family:"Begoniaceae",origin:"South America",type:"Bedding perennial (grown as annual)",light:"Partial shade to full sun",water:"Moderate",humidity:"Moderate",temp:"Frost tender",height:"15–30cm",flowering:"Summer–autumn",flower:"Small clustered flowers, pink/red/white",hardiness:"H2 — frost tender",toxic:"Mildly toxic if ingested",difficulty:"Easy",desc:"Bedding begonia near the spiral staircase basket display.",soil:"Fertile, well-drained/container compost",care:"Deadhead spent flowers; bring under cover before frost.",tags:["Bedding","Colourful","Toxic to pets"],placement:"Container near the staircase, partial shade tolerant",sow:"Sow indoors in warmth, or buy as plug plants"},
+  {id:67,n:"67",name:"Salvia",latin:"Salvia nemorosa",family:"Lamiaceae",origin:"Central Europe to Western Asia",type:"Herbaceous perennial",light:"Full sun",water:"Low-moderate — drought tolerant once established",humidity:"Any",temp:"Hardy to about -20°C",height:"30–60cm",flowering:"Summer, repeat-flowering if deadheaded",flower:"Tall purple-blue spikes",hardiness:"H7 — fully hardy",toxic:"Non-toxic",difficulty:"Easy",desc:"Upright flowering salvia near the spiral staircase.",soil:"Well-drained, tolerates poor soil",care:"Cut back after first flush for a second flowering. Divide every few years.",tags:["Pollinator-friendly","Non-toxic","Low-maintenance"],placement:"Border or container, full sun near the staircase",sow:"Divide in spring, or sow seed in autumn/spring"},
+  {id:68,n:"68",name:"Wandering Trad (outdoor)",latin:"Tradescantia fluminensis",family:"Commelinaceae",origin:"South America",type:"Trailing groundcover perennial",light:"Partial shade to bright indirect light",water:"Moderate",humidity:"Any",temp:"Hardy to about 0°C; best with some winter protection",height:"Trailing to 30cm+",flowering:"Small white three-petalled flowers, summer",flower:"White, three-petalled",hardiness:"H2–H3 — half hardy",toxic:"Mildly toxic — sap can irritate skin/mouth",difficulty:"Easy",desc:"Trailing groundcover in the border, grown outdoors here. Same species as the indoor Wandering Inch Plant, but a separate outdoor-grown specimen.",soil:"Moist, well-drained",care:"Pinch back to keep bushy; protect from hard frost.",tags:["Trailing","Low-maintenance","Toxic to pets"],placement:"Border edge or container, partial shade",sow:"Stem cuttings root readily in water or soil"}
 
 ];
 
@@ -1667,26 +1683,29 @@ const GREENHOUSE_DEFAULT={
   "0,5":"h02",
 };
 const COURTYARD_ZONES=[
-  {id:'stairs',     label:'Spiral Staircase',              col:'rgba(139,92,246,0.25)', border:'#8b5cf6',x:11,y:0,w:3, h:2},
-  {id:'wall',       label:'Sago Palm Corner (Sliding Door)',col:'rgba(239,68,68,0.18)',  border:'#ef4444',x:11,y:2,w:3, h:3},
-  {id:'seating',    label:'Seating Area',                  col:'rgba(217,119,6,0.25)',  border:'#d97706',x:0, y:5,w:6, h:2},
-  {id:'gate',       label:'Door to Back Garden',           col:'rgba(20,184,166,0.25)', border:'#14b8a6',x:4, y:7,w:3, h:1},
-  {id:'border',     label:'House Wall Border',             col:'rgba(74,124,63,0.18)',  border:'#4a7c3f',x:0, y:0,w:11,h:2},
-  {id:'planter',    label:'Raised Planter & Pots',         col:'rgba(161,107,59,0.18)', border:'#a16b3b',x:0, y:2,w:6, h:3},
-  {id:'shedcorner', label:'Shed & Greenhouse Corner',      col:'rgba(34,197,94,0.12)',  border:'#22c55e',x:0, y:7,w:4, h:1},
+  {id:'pond',       label:'Pond',                          col:'rgba(20,120,184,0.28)', border:'#1478b8',x:0, y:0,w:2, h:2},
+  {id:'plantbed',   label:'Plant Bed',                     col:'rgba(74,124,63,0.18)',  border:'#4a7c3f',x:2, y:0,w:5, h:2},
+  {id:'lemon',      label:'Lemon Tree',                    col:'rgba(234,179,8,0.18)',  border:'#eab308',x:7, y:0,w:2, h:2},
+  {id:'stairs',     label:'Spiral Staircase',              col:'rgba(139,92,246,0.25)', border:'#8b5cf6',x:9, y:0,w:5, h:2},
+  {id:'pondedge',   label:'Pond Edge (Back Garden Side)',  col:'rgba(20,184,166,0.15)', border:'#14b8a6',x:0, y:2,w:2, h:3},
+  {id:'gate',       label:'Door to Back Garden',           col:'rgba(20,184,166,0.28)', border:'#14b8a6',x:0, y:5,w:2, h:2},
+  {id:'border',     label:'Border Path (Back Garden Side)',col:'rgba(74,124,63,0.18)',  border:'#4a7c3f',x:0, y:7,w:8, h:1},
+  {id:'steps',      label:'Steps',                         col:'rgba(139,92,246,0.2)',  border:'#8b5cf6',x:8, y:7,w:2, h:1},
+  {id:'seating',    label:'Sitting Area',                  col:'rgba(217,119,6,0.25)',  border:'#d97706',x:10,y:6,w:4, h:2},
   {id:'patio',      label:'Patio',                         col:'rgba(107,114,128,0.12)',border:'#9ca3af',x:0, y:0,w:14,h:8},
 ];
 const COURTYARD_DEFAULT={
-  "2,0":"31","4,0":"9","6,0":"34","8,0":"58",
-  "11,0":"57","12,0":"9","13,0":"13",
-  "0,2":"20","1,2":"33","2,2":"29","3,2":"19","4,2":"37","5,2":"59",
-  "0,3":"33","1,3":"17","2,3":"61","3,3":"37","4,3":"36",
-  "0,4":"43","1,4":"39",
-  "11,2":"44","12,2":"31","13,2":"30","11,3":"9","12,3":"14","13,3":"25",
-  "0,7":"54","1,7":"29","2,7":"60",
+  "2,0":"33","3,0":"43","4,0":"30",
+  "2,1":"36","3,1":"3","4,1":"34","5,1":"62",
+  "7,0":"50",
+  "9,0":"67","10,0":"57","11,0":"65","12,0":"66",
+  "9,1":"39","10,1":"41","11,1":"63",
+  "0,2":"9","0,3":"64","0,4":"54",
+  "0,7":"58","1,7":"34","2,7":"60","3,7":"59","4,7":"33","5,7":"61","6,7":"68","7,7":"9",
+  "10,7":"25","11,7":"3","12,7":"30","13,7":"43","13,6":"44",
 };
 const COURTYARD_TEXT={
-  "0,5":"Rattan Bench","1,5":"Rattan Bench","3,5":"Chair","4,5":"Chair","2,6":"Low Table",
+  "10,6":"Bench","11,6":"Chairs","12,6":"Table",
 };
 const INDOOR_ZONES=[
   // Living room — large main space with floor plants around the sofa
