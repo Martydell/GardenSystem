@@ -2796,8 +2796,8 @@ function Catalogue(){
     });
     window.location.reload();
   }
-  const MAP_DEFAULTS={garden:'Back Garden',courtyard:'Courtyard',greenhouse:'Greenhouse',indoor:'Indoor',irrigation:'Irrigation System'};
-  const MAP_ICONS={garden:'&#x1F33B;',courtyard:'&#x2600;&#xFE0F;',greenhouse:'&#x1F9EA;',indoor:'&#x1F3E0;',irrigation:'&#x1F4A7;'};
+  const MAP_DEFAULTS={garden:'Back Garden',courtyard:'Courtyard',greenhouse:'Greenhouse',indoor:'Indoor'};
+  const MAP_ICONS={garden:'&#x1F33B;',courtyard:'&#x2600;&#xFE0F;',greenhouse:'&#x1F9EA;',indoor:'&#x1F3E0;'};
   const [mapNames,setMapNames]=React.useState(()=>{
     try{return JSON.parse(localStorage.getItem('map-names')||'{}');}catch{return {};}
   });
@@ -3014,6 +3014,7 @@ function Catalogue(){
         display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
         {navBtn('catalogue','&#x1F33F; Plants')}
         {navBtn('map',      '&#x1F5FA; Maps')}
+        {navBtn('irrigation','&#x1F4A7; Irrigation')}
         {navBtn('calendar', '&#x1F4C5; Schedule')}
         {navBtn('dashboard','&#x1F4CA; Dashboard',attention||'')}
         {navBtn('wishlist', '&#x1F331; Wishlist',wishlist.length||'')}
@@ -3133,7 +3134,7 @@ function Catalogue(){
               <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16,flexWrap:'wrap'}}>
                 <h2 style={{fontSize:20,fontWeight:700,color:T.text}}>&#x1F5FA; Plant Maps</h2>
                 <div style={{display:'flex',gap:6,marginLeft:'auto',flexWrap:'wrap',alignItems:'center'}}>
-                  {['indoor','courtyard','garden','greenhouse','irrigation'].map(k=>(
+                  {['indoor','courtyard','garden','greenhouse'].map(k=>(
                     <div key={k} style={{display:'flex',alignItems:'center',gap:0}}>
                       {editingMap===k?(
                         <input autoFocus value={editingName}
@@ -3187,7 +3188,7 @@ function Catalogue(){
             {/* Compact bar shown only in full-screen mode */}
             {mapFull&&(
               <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6,flexWrap:'wrap'}}>
-                {['indoor','courtyard','garden','greenhouse','irrigation'].map(k=>(
+                {['indoor','courtyard','garden','greenhouse'].map(k=>(
                   <button key={k} onClick={()=>setMapTab(k)} style={{
                     padding:'4px 12px',borderRadius:20,border:'1px solid '+T.border,cursor:'pointer',fontSize:11,
                     background:mapTab===k?T.green:T.input,color:mapTab===k?'#fff':T.text,
@@ -3204,7 +3205,7 @@ function Catalogue(){
               </div>
             )}
             {/* Map settings panel */}
-            {showMapSettings&&!mapFull&&mapTab!=='irrigation'&&(()=>{
+            {showMapSettings&&!mapFull&&(()=>{
               const cfg=getMapCfg(mapTab);
               const def=MAP_SIZE_DEFAULTS[mapTab];
               const isCustom=JSON.stringify(cfg)!==JSON.stringify(def);
@@ -3256,14 +3257,20 @@ function Catalogue(){
                 </div>
               );
             })()}
-            {!mapFull&&mapTab!=='irrigation'&&<p style={{color:T.sub,fontSize:13,marginBottom:12}}>
+            {!mapFull&&<p style={{color:T.sub,fontSize:13,marginBottom:12}}>
               Drag plants onto the grid &bull; Double-click to remove (in &#x1F331; Place mode) &bull; &#x270F;&#xFE0F; rename map
             </p>}
             {mapTab==='garden'&&(()=>{const c=getMapCfg('garden');return<MapGrid storageKey="garden-map" cols={c.cols} rows={c.rows} size={c.size} zones={null} defaultFilter="outdoor" allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
             {mapTab==='courtyard'&&(()=>{const c=getMapCfg('courtyard');return<MapGrid storageKey="courtyard-map" cols={c.cols} rows={c.rows} size={c.size} zones={COURTYARD_ZONES} defaultFilter="outdoor" defaultPos={COURTYARD_DEFAULT} defaultText={COURTYARD_TEXT} allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
             {mapTab==='greenhouse'&&(()=>{const c=getMapCfg('greenhouse');return<MapGrid storageKey="greenhouse-map" cols={c.cols} rows={c.rows} size={c.size} zones={GREENHOUSE_ZONES} defaultFilter="hydro" defaultPos={GREENHOUSE_DEFAULT} allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
             {mapTab==='indoor'&&(()=>{const c=getMapCfg('indoor');return<MapGrid storageKey="indoor-map" cols={c.cols} rows={c.rows} size={c.size} zones={INDOOR_ZONES} defaultFilter="indoor" allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
-            {mapTab==='irrigation'&&<IrrigationMap allPlants={allPlants}/>}
+          </div>
+        )}
+
+        {/* ── Irrigation System View ── */}
+        {view==='irrigation'&&(
+          <div style={{paddingTop:28}}>
+            <IrrigationMap allPlants={allPlants}/>
           </div>
         )}
 
@@ -3306,6 +3313,7 @@ function Catalogue(){
           {[
             ['catalogue','&#x1F33F;','Plants',null],
             ['map','&#x1F5FA;','Maps',null],
+            ['irrigation','&#x1F4A7;','Irrigate',null],
             ['calendar','&#x1F4C5;','Schedule',null],
             ['dashboard','&#x1F4CA;','Care',attention||null],
             ['wishlist','&#x1F331;','Wishlist',wishlist.length||null],
