@@ -548,8 +548,20 @@ function CareHistorySparkline({plantId, careHistory, type='watered'}){
 }
 
 // ─── PhotoCard ─────────────────────────────────────────────────────────────
-function PhotoCard({src, loading, name, onZoom}){
+function customPhotoKey(id){return 'plant-photo-'+id;}
+function getCustomPhoto(id){try{return localStorage.getItem(customPhotoKey(id))||null;}catch{return null;}}
+function setCustomPhoto(id,dataUrl){try{if(dataUrl)localStorage.setItem(customPhotoKey(id),dataUrl);else localStorage.removeItem(customPhotoKey(id));}catch{}}
+
+function PhotoCard({src, loading, name, onZoom, onUpload}){
   const T=React.useContext(ThemeCtx);
+  const fileRef=React.useRef(null);
+  async function handleFile(e){
+    const file=e.target.files&&e.target.files[0];
+    e.target.value='';
+    if(!file||!onUpload)return;
+    const dataUrl=await resizeImageToDataURL(file,1200,0.75);
+    onUpload(dataUrl);
+  }
   return (
     <div style={{position:'relative',width:'100%',aspectRatio:'4/3',overflow:'hidden',background:T.surface,borderRadius:8,cursor:onZoom?'zoom-in':'default'}}
          onClick={onZoom?e=>{e.stopPropagation();onZoom(src);}:undefined}>
@@ -558,6 +570,14 @@ function PhotoCard({src, loading, name, onZoom}){
       </div>}
       {src&&<img src={src} alt={name} style={{width:'100%',height:'100%',objectFit:'cover',display:loading?'none':'block'}} onLoad={e=>e.target.style.display='block'} onError={e=>e.target.style.display='none'}/>}
       {onZoom&&src&&<div style={{position:'absolute',top:6,right:6,background:'rgba(0,0,0,0.55)',borderRadius:'50%',width:26,height:26,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:'#fff',pointerEvents:'none'}}>&#x2295;</div>}
+      {onUpload&&<>
+        <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={handleFile}/>
+        <button onClick={e=>{e.stopPropagation();fileRef.current&&fileRef.current.click();}}
+          title="Upload your own photo"
+          style={{position:'absolute',top:6,left:6,background:'rgba(0,0,0,0.55)',border:'none',borderRadius:'50%',
+            width:26,height:26,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,
+            color:'#fff',cursor:'pointer',padding:0}}>&#x1F4F7;</button>
+      </>}
     </div>
   );
 }
@@ -567,6 +587,12 @@ function PlantCard({plant, onSelect, photo, loading=false, badge, badgeColor, ca
   const T = React.useContext(ThemeCtx);
   const M = useIsMobile();
   const [flipped, setFlipped] = React.useState(false);
+  const [customPhoto,setCustomPhotoState]=React.useState(()=>getCustomPhoto(plant.id));
+  const displayPhoto = customPhoto||photo;
+  function handleUpload(dataUrl){
+    setCustomPhotoState(dataUrl);
+    setCustomPhoto(plant.id,dataUrl);
+  }
   const flowering = isFloweringNow(plant);
   const wUrgency  = getUrgency(plant, careLog,'watered');
   const fUrgency  = getUrgency(plant, careLog,'fed');
@@ -626,7 +652,7 @@ function PlantCard({plant, onSelect, photo, loading=false, badge, badgeColor, ca
       <div style={innerStyle}>
         {/* FRONT */}
         <div style={faceBase}>
-          <PhotoCard src={photo} loading={loading} name={plant.name} onZoom={onPhotoZoom}/>
+          <PhotoCard src={displayPhoto} loading={loading&&!customPhoto} name={plant.name} onZoom={onPhotoZoom} onUpload={handleUpload}/>
           {plant.medicinal&&<div style={{position:'absolute',top:8,left:8,background:'#10b981',color:'#fff',
             fontSize:10,fontWeight:700,padding:'2px 6px',borderRadius:4,letterSpacing:0.5}}>&#x271A; MEDICINAL</div>}
           {activePests>0&&onPest&&<div onClick={e=>{e.stopPropagation();onPest(plant);}}
@@ -930,9 +956,20 @@ function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes, harves
   const M = useIsMobile();
   const {badge,color}=badgeForType(plant.type);
   const flowering=isFloweringNow(plant);
-  const photo = plant.type==='indoor'
+  const basePhoto = plant.type==='indoor'
     ? (INDOOR_PHOTOS[plant.id]||STATIC_PHOTO_URLS[plant.id]||null)
     : STATIC_PHOTO_URLS[plant.id]||null;
+  const [customPhoto,setCustomPhotoState]=React.useState(()=>getCustomPhoto(plant.id));
+  const photo = customPhoto||basePhoto;
+  const uploadRef=React.useRef(null);
+  async function handleDetailUpload(e){
+    const file=e.target.files&&e.target.files[0];
+    e.target.value='';
+    if(!file)return;
+    const dataUrl=await resizeImageToDataURL(file,1200,0.75);
+    setCustomPhotoState(dataUrl);
+    setCustomPhoto(plant.id,dataUrl);
+  }
   React.useEffect(()=>{
     const h=e=>{if(e.key==='Escape')onClose();};
     window.addEventListener('keydown',h);
@@ -971,6 +1008,12 @@ function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes, harves
             color:'#fff',fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:5}}>{badge}</div>
           {flowering&&<div style={{position:'absolute',bottom:12,left:12,background:'rgba(122,184,106,0.9)',
             color:'#fff',fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:5}}>IN SEASON</div>}
+          <input ref={uploadRef} type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={handleDetailUpload}/>
+          <button onClick={e=>{e.stopPropagation();uploadRef.current&&uploadRef.current.click();}}
+            title="Upload your own photo"
+            style={{position:'absolute',bottom:12,right:12,background:'rgba(0,0,0,0.55)',border:'none',
+              color:'#fff',borderRadius:'50%',width:30,height:30,cursor:'pointer',fontSize:15,
+              display:'flex',alignItems:'center',justifyContent:'center'}}>&#x1F4F7;</button>
           <button onClick={e=>{e.stopPropagation();onClose();}} style={{position:'absolute',top:12,right:plant.medicinal?12+70:12,
             background:'rgba(0,0,0,0.5)',border:'none',color:'#fff',borderRadius:'50%',
             width:28,height:28,cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center'}}>&#x2715;</button>
@@ -1058,9 +1101,9 @@ function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes, harves
 // ─── AttentionCard ─────────────────────────────────────────────────────────
 function AttentionCard({plant, careLog, onLog, onSelect}){
   const T = React.useContext(ThemeCtx);
-  const photo = plant.type==='indoor'
+  const photo = getCustomPhoto(plant.id)||(plant.type==='indoor'
     ? (INDOOR_PHOTOS[plant.id]||STATIC_PHOTO_URLS[plant.id])
-    : STATIC_PHOTO_URLS[plant.id];
+    : STATIC_PHOTO_URLS[plant.id]);
   const wU = getUrgency(plant,careLog,'watered');
   const fU = getUrgency(plant,careLog,'fed');
   const rU = repotApplicable(plant)?getUrgency(plant,careLog,'repotted'):null;
@@ -1702,6 +1745,7 @@ function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPos,defau
     }catch{return defaultPos||{};}
   });
   const [dragId,setDragId]=React.useState(null);
+  const clickTimerRef=React.useRef(null);
   const [hov,setHov]=React.useState(null);
   const [zFilter,setZFilter]=React.useState(defaultFilter||'all');
   const [showPlantPicker,setShowPlantPicker]=React.useState(false);
@@ -1860,7 +1904,7 @@ function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPos,defau
     if(p) cellMap[key]=p;
   });
   const TC={outdoor:'#4a7c3f',indoor:'#1e40af',hydro:'#d97706'};
-  function photo(p){return plantCategory(p)==='indoor'?(INDOOR_PHOTOS[p.id]||STATIC_PHOTO_URLS[p.id]||null):STATIC_PHOTO_URLS[p.id]||null;}
+  function photo(p){return getCustomPhoto(p.id)||(plantCategory(p)==='indoor'?(INDOOR_PHOTOS[p.id]||STATIC_PHOTO_URLS[p.id]||null):STATIC_PHOTO_URLS[p.id]||null);}
   function getZn(x,y){
     return effectiveZones.find(z=>{const p=getZonePos(z);return x>=p.x&&x<p.x+z.w&&y>=p.y&&y<p.y+z.h;})||null;
   }
@@ -2159,9 +2203,17 @@ function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPos,defau
                         setHov(null);
                       }
                     }}
-                    onDoubleClick={()=>{if(mode==='place'&&plant&&!isDisabled)removeCell(x,y);}}
+                    onDoubleClick={()=>{
+                      if(mode==='place'&&plant&&!isDisabled){
+                        if(clickTimerRef.current){clearTimeout(clickTimerRef.current);clickTimerRef.current=null;}
+                        removeCell(x,y);
+                      }
+                    }}
                     onClick={()=>{
-                      if(mode==='place'&&plant&&!isDisabled){onSelect(plant);}
+                      if(mode==='place'&&plant&&!isDisabled){
+                        if(clickTimerRef.current)clearTimeout(clickTimerRef.current);
+                        clickTimerRef.current=setTimeout(()=>{onSelect(plant);clickTimerRef.current=null;},230);
+                      }
                       else if(mode==='label'&&!isDisabled){setEditCell(key);setEditText(cellText[key]||'');}
                     }}
                     onMouseDown={e=>{
@@ -2503,6 +2555,14 @@ function Catalogue(){
     const next={...mapSettings};delete next[k];
     setMapSettings(next);
     try{localStorage.setItem('map-settings',JSON.stringify(next));}catch{}
+  }
+  function resetMapLayout(k){
+    if(!window.confirm(`Reset the ${getMapName(k)} map layout? This clears all plant placements, custom zones, labels, colours and any background photo you've set for this map, restoring the built-in defaults.`))return;
+    const sk=k+'-map';
+    ['','-text','-color','-disabled','-czones','-rzones','-zlabels','-bg'].forEach(suffix=>{
+      try{localStorage.removeItem(sk+suffix);}catch{}
+    });
+    window.location.reload();
   }
   const MAP_DEFAULTS={garden:'Back Garden',courtyard:'Courtyard',greenhouse:'Greenhouse',indoor:'Indoor'};
   const MAP_ICONS={garden:'&#x1F33B;',courtyard:'&#x2600;&#xFE0F;',greenhouse:'&#x1F9EA;',indoor:'&#x1F3E0;'};
@@ -2948,11 +3008,19 @@ function Catalogue(){
                       </button>
                     ))}
                   </div>
-                  {isCustom&&<button onClick={()=>resetMapCfg(mapTab)}
-                    style={{padding:'3px 10px',borderRadius:20,border:'1px solid '+T.border,
-                      cursor:'pointer',fontSize:11,background:T.input,color:T.sub,marginLeft:'auto'}}>
-                    &#x21BA; Reset
-                  </button>}
+                  <div style={{display:'flex',gap:8,marginLeft:'auto'}}>
+                    {isCustom&&<button onClick={()=>resetMapCfg(mapTab)}
+                      style={{padding:'3px 10px',borderRadius:20,border:'1px solid '+T.border,
+                        cursor:'pointer',fontSize:11,background:T.input,color:T.sub}}>
+                      &#x21BA; Reset Size
+                    </button>}
+                    <button onClick={()=>resetMapLayout(mapTab)}
+                      title="Clears saved plant placements, zones and labels for this map, restoring the built-in defaults"
+                      style={{padding:'3px 10px',borderRadius:20,border:'1px solid '+T.border,
+                        cursor:'pointer',fontSize:11,background:T.input,color:'#ef4444'}}>
+                      &#x1F5D1;&#xFE0F; Reset Layout
+                    </button>
+                  </div>
                 </div>
               );
             })()}
@@ -3038,7 +3106,6 @@ function Catalogue(){
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<Catalogue/>);
-
 </script>
 
   <script>
