@@ -5,7 +5,7 @@ outdoor, 32 indoor, 13 greenhouse/hydroponics) with photos, origin,
 care instructions, propagation methods, hardiness, classification,
 sowing/flowering times, and time to maturity for each plant.
 
-Live at [martyshaven.netlify.app](https://martyshaven.netlify.app/).
+Live at [mygardenmate.netlify.app](https://mygardenmate.netlify.app/).
 
 ## Structure
 - `index.html` — the built, deployable app (this is what Netlify serves).

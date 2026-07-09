@@ -2,7 +2,7 @@
 
 ## Purpose
 Marty's personal plant catalogue, care tracker & garden reference — deployed
-as a PWA at [martyshaven.netlify.app](https://martyshaven.netlify.app/).
+as a PWA at [mygardenmate.netlify.app](https://mygardenmate.netlify.app/).
 Built iteratively with Claude, plant by plant / batch by batch.
 
 ## Current State (as of 2026-07-09)
@@ -21,7 +21,9 @@ Built iteratively with Claude, plant by plant / batch by batch.
 - **PWA:** `manifest.json`, `icon-192.png`, `icon-512.png`, `sw.js` (service
   worker registered from `index.html` on load) make the app installable and
   usable offline.
-- **Hosting:** Netlify, at martyshaven.netlify.app.
+- **Hosting:** Netlify, at mygardenmate.netlify.app (migrated from
+  martyshaven.netlify.app after that site ran out of Netlify build
+  credits).
 
 ## Features live
 - Card flip (front = photo/tags, back = care snapshot + watering button)
