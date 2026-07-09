@@ -1593,14 +1593,24 @@ const GREENHOUSE_DEFAULT={
   "0,5":"h02",
 };
 const COURTYARD_ZONES=[
-  {id:'border', label:'Plant Border (House Wall)',col:'rgba(74,124,63,0.18)',  border:'#4a7c3f',x:0,y:0,w:14,h:2},
-  {id:'seating',label:'Seating Area',            col:'rgba(217,119,6,0.15)',  border:'#d97706',x:0,y:2,w:9, h:2},
-  {id:'patio',  label:'Patio',                   col:'rgba(107,114,128,0.12)',border:'#9ca3af',x:0,y:4,w:9, h:2},
-  {id:'bbq',    label:'BBQ Corner',              col:'rgba(239,68,68,0.12)',  border:'#ef4444',x:0,y:6,w:6, h:2},
-  {id:'steps',  label:'Gate / Entrance',         col:'rgba(139,92,246,0.12)', border:'#8b5cf6',x:6,y:6,w:3, h:2},
-  {id:'deck',   label:'Wooden Deck',             col:'rgba(161,107,59,0.18)', border:'#a16b3b',x:9,y:2,w:5, h:4},
-  {id:'garden', label:'Garden / Trees',          col:'rgba(34,197,94,0.12)',  border:'#22c55e',x:9,y:6,w:5, h:2},
+  {id:'border',     label:'House Wall Border',        col:'rgba(74,124,63,0.18)',  border:'#4a7c3f',x:0,y:0,w:14,h:2},
+  {id:'planter',    label:'Raised Planter & Pots',    col:'rgba(161,107,59,0.18)', border:'#a16b3b',x:0,y:2,w:6, h:3},
+  {id:'patio',      label:'Patio',                    col:'rgba(107,114,128,0.12)',border:'#9ca3af',x:6,y:2,w:8, h:3},
+  {id:'seating',    label:'Seating Area',             col:'rgba(217,119,6,0.15)',  border:'#d97706',x:0,y:5,w:6, h:2},
+  {id:'stairs',     label:'Staircase & Entrance',     col:'rgba(139,92,246,0.12)', border:'#8b5cf6',x:6,y:5,w:3, h:2},
+  {id:'wall',       label:'Wall Corner (Palm/BBQ)',   col:'rgba(239,68,68,0.12)',  border:'#ef4444',x:9,y:5,w:5, h:2},
+  {id:'shedcorner', label:'Shed & Greenhouse Corner', col:'rgba(34,197,94,0.12)',  border:'#22c55e',x:0,y:7,w:5, h:1},
+  {id:'path',       label:'Garden Edge / Path',       col:'rgba(20,184,166,0.10)', border:'#14b8a6',x:5,y:7,w:9, h:1},
 ];
+const COURTYARD_DEFAULT={
+  "2,0":"31","4,0":"9","6,0":"34",
+  "0,2":"20","1,2":"33","2,2":"29","3,2":"19","4,2":"37",
+  "0,3":"33","1,3":"17","2,3":"11","3,3":"37","4,3":"36",
+  "0,4":"43","1,4":"39",
+  "6,5":"i06","7,5":"9","8,5":"13",
+  "9,5":"44","10,5":"31","11,5":"30","12,5":"9","9,6":"14",
+  "0,7":"13","1,7":"29",
+};
 const INDOOR_ZONES=[
   // Living room — large main space with floor plants around the sofa
   {id:'living',   label:'Living Room',           col:'rgba(59,130,246,0.10)', border:'#3b82f6',x:0, y:0,w:10,h:5},
@@ -2460,7 +2470,7 @@ function Catalogue(){
     setMapSettings(next);
     try{localStorage.setItem('map-settings',JSON.stringify(next));}catch{}
   }
-  const MAP_DEFAULTS={garden:'Garden',courtyard:'Courtyard',greenhouse:'Greenhouse',indoor:'Indoor'};
+  const MAP_DEFAULTS={garden:'Back Garden',courtyard:'Courtyard',greenhouse:'Greenhouse',indoor:'Indoor'};
   const MAP_ICONS={garden:'&#x1F33B;',courtyard:'&#x2600;&#xFE0F;',greenhouse:'&#x1F9EA;',indoor:'&#x1F3E0;'};
   const [mapNames,setMapNames]=React.useState(()=>{
     try{return JSON.parse(localStorage.getItem('map-names')||'{}');}catch{return {};}
@@ -2914,7 +2924,7 @@ function Catalogue(){
             })()}
             {!mapFull&&<p style={{color:T.sub,fontSize:13,marginBottom:12}}>Drag plants onto the grid &bull; Double-click to remove &bull; &#x270F;&#xFE0F; rename map</p>}
             {mapTab==='garden'&&(()=>{const c=getMapCfg('garden');return<MapGrid storageKey="garden-map" cols={c.cols} rows={c.rows} size={c.size} zones={null} defaultFilter="outdoor" allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
-            {mapTab==='courtyard'&&(()=>{const c=getMapCfg('courtyard');return<MapGrid storageKey="courtyard-map" cols={c.cols} rows={c.rows} size={c.size} zones={COURTYARD_ZONES} defaultFilter="outdoor" allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
+            {mapTab==='courtyard'&&(()=>{const c=getMapCfg('courtyard');return<MapGrid storageKey="courtyard-map" cols={c.cols} rows={c.rows} size={c.size} zones={COURTYARD_ZONES} defaultFilter="outdoor" defaultPos={COURTYARD_DEFAULT} allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
             {mapTab==='greenhouse'&&(()=>{const c=getMapCfg('greenhouse');return<MapGrid storageKey="greenhouse-map" cols={c.cols} rows={c.rows} size={c.size} zones={GREENHOUSE_ZONES} defaultFilter="hydro" defaultPos={GREENHOUSE_DEFAULT} allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
             {mapTab==='indoor'&&(()=>{const c=getMapCfg('indoor');return<MapGrid storageKey="indoor-map" cols={c.cols} rows={c.rows} size={c.size} zones={INDOOR_ZONES} defaultFilter="indoor" allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
           </div>
