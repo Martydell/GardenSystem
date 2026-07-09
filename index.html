@@ -1217,12 +1217,25 @@ function CareStreak({careLog, allPlants}){
 function SowingCalendar({allPlants}){
   const T = React.useContext(ThemeCtx);
   const [filter,setFilter] = React.useState('all');
+  const [expanded,setExpanded] = React.useState(false);
   const now = new Date().getMonth();
   const plants = allPlants.filter(p=>p.sow && (filter==='all'||plantCategory(p)===filter));
   const typeColor = {outdoor:'#4a7c3f',indoor:'#1e40af',hydro:'#d97706'};
+  if(!expanded){
+    return (
+      <button onClick={()=>setExpanded(true)} style={{
+        display:'flex',alignItems:'center',gap:8,width:'100%',textAlign:'left',
+        padding:'12px 16px',borderRadius:10,border:'1px solid '+T.border,
+        background:T.card,color:T.text,cursor:'pointer',fontSize:13}}>
+        <span>&#x1F4C6;</span>
+        <span style={{flex:1}}>Show full-year sowing calendar &mdash; {plants.length} plants with sowing dates</span>
+        <span style={{color:T.sub}}>&#x25BE;</span>
+      </button>
+    );
+  }
   return (
     <div>
-      <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap'}}>
+      <div style={{display:'flex',gap:8,marginBottom:16,flexWrap:'wrap',alignItems:'center'}}>
         {[['all','All'],['outdoor','Outdoor'],['indoor','Indoor'],['hydro','Greenhouse']].map(([k,l])=>(
           <button key={k} onClick={()=>setFilter(k)} style={{
             padding:'5px 14px',borderRadius:20,border:'1px solid '+T.border,cursor:'pointer',fontSize:12,
@@ -1230,6 +1243,11 @@ function SowingCalendar({allPlants}){
             {l}
           </button>
         ))}
+        <button onClick={()=>setExpanded(false)} style={{
+          marginLeft:'auto',padding:'5px 14px',borderRadius:20,border:'1px solid '+T.border,
+          cursor:'pointer',fontSize:12,background:T.input,color:T.sub}}>
+          &#x25B4; Collapse
+        </button>
       </div>
       <div style={{overflowX:'auto'}}>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:12,minWidth:600}}>
@@ -1357,7 +1375,7 @@ function DashboardView({allPlants, careLog, onLog, onSelect}){
 function WateringCalendarView({allPlants, careLog}){
   const T=React.useContext(ThemeCtx);
   const M=useIsMobile();
-  const [span,setSpan]=React.useState(14);
+  const [span,setSpan]=React.useState(7);
   const DAY=86400000;
   const todayStart=new Date(); todayStart.setHours(0,0,0,0);
   const todayTs=todayStart.getTime();
@@ -3015,7 +3033,7 @@ function Catalogue(){
         {navBtn('catalogue','&#x1F33F; Plants')}
         {navBtn('map',      '&#x1F5FA; Maps')}
         {navBtn('irrigation','&#x1F4A7; Irrigation')}
-        {navBtn('calendar', '&#x1F4C5; Schedule')}
+        {navBtn('calendar', '&#x1F4C5; Care Schedule')}
         {navBtn('dashboard','&#x1F4CA; Dashboard',attention||'')}
         {navBtn('wishlist', '&#x1F331; Wishlist',wishlist.length||'')}
         <NotificationManager allPlants={allPlants} careLog={careLog}/>
@@ -3274,12 +3292,13 @@ function Catalogue(){
           </div>
         )}
 
-        {/* ── Calendar View ── */}
+        {/* ── Care Schedule View ── */}
         {view==='calendar'&&(
           <div style={{paddingTop:28}}>
-            <h2 style={{fontSize:20,fontWeight:700,color:T.text,marginBottom:6}}>&#x1F4C5; Plant Schedule</h2>
-            <p style={{color:T.sub,fontSize:13,marginBottom:24}}>Watering calendar, sowing guide, and seasonal tasks.</p>
+            <h2 style={{fontSize:20,fontWeight:700,color:T.text,marginBottom:6}}>&#x1F4C5; Care Schedule</h2>
+            <p style={{color:T.sub,fontSize:13,marginBottom:24}}>Watering calendar, seasonal tasks, and sowing guide.</p>
             <WateringCalendarView allPlants={allPlants} careLog={careLog}/>
+            <SeasonalTasksPanel allPlants={allPlants}/>
             <h3 style={{fontSize:16,fontWeight:700,color:T.text,margin:'0 0 12px'}}>&#x1F331; Sowing Calendar</h3>
             <p style={{color:T.sub,fontSize:13,marginBottom:16}}>When to sow, propagate, or plant out each species across the year.</p>
             <SowingCalendar allPlants={allPlants}/>
@@ -3292,7 +3311,6 @@ function Catalogue(){
             <h2 style={{fontSize:20,fontWeight:700,color:T.text,marginBottom:6}}>&#x1F4CA; Care Dashboard</h2>
             <p style={{color:T.sub,fontSize:13,marginBottom:16}}>Track watering, feeding, repotting, and recent care activity.</p>
             <WeatherWidget/>
-            <SeasonalTasksPanel allPlants={allPlants}/>
             <DashboardView allPlants={allPlants} careLog={careLog} onLog={logCare} onSelect={setSelected}/>
             <BackupRestorePanel/>
           </div>
