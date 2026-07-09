@@ -1877,6 +1877,28 @@ function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPos,defau
   }
   function removeCell(x,y){const n={...pos};delete n[`${x},${y}`];save(n);}
 
+  function exportLayout(){
+    const zonesOut=effectiveZones.map(z=>{const zp=getZonePos(z);return {id:z.id,label:z.label,x:zp.x,y:zp.y,w:z.w,h:z.h};});
+    const plantsOut=Object.entries(pos).map(([key,pid])=>{
+      const [x,y]=key.split(',').map(Number);
+      const p=allPlants.find(q=>String(q.id)===pid);
+      return {x,y,plantId:pid,name:p?p.name:pid};
+    }).sort((a,b)=>a.y-b.y||a.x-b.x);
+    const labelsOut=Object.entries(cellText).map(([key,text])=>{
+      const [x,y]=key.split(',').map(Number);
+      return {x,y,text};
+    });
+    const json=JSON.stringify({map:storageKey,zones:zonesOut,plants:plantsOut,labels:labelsOut},null,2);
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(json).then(
+        ()=>window.alert('Layout copied to clipboard — paste it into your chat with Claude to make this the permanent default.'),
+        ()=>window.prompt('Copy this layout JSON and paste it into your chat with Claude:',json)
+      );
+    }else{
+      window.prompt('Copy this layout JSON and paste it into your chat with Claude:',json);
+    }
+  }
+
   // Build cellMap: "x,y" → plant object
   const cellMap={};
   Object.entries(pos).forEach(([key,pid])=>{
@@ -2070,6 +2092,12 @@ function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPos,defau
             &#x1F33F; Plants &#x25BE;
           </button>
           <div style={{marginLeft:'auto',display:'flex',gap:6,alignItems:'center'}}>
+            <button onClick={exportLayout} title="Copy the current zones, plant placements and labels as JSON — paste it into your chat with Claude to make this the permanent default"
+              style={{padding:'4px 10px',borderRadius:20,border:'1px solid '+T.border,
+                background:T.input,color:T.text,cursor:'pointer',fontSize:11,fontWeight:600,
+                display:'flex',alignItems:'center',gap:4}}>
+              &#x1F4CB; Export Layout
+            </button>
             {bgImage
               ? <button onClick={()=>saveBg(null)} style={{
                   padding:'4px 10px',borderRadius:20,border:'1px solid #ef4444',
@@ -3004,7 +3032,11 @@ function Catalogue(){
                 </div>
               );
             })()}
-            {!mapFull&&<p style={{color:T.sub,fontSize:13,marginBottom:12}}>Drag plants onto the grid &bull; Double-click to remove &bull; &#x270F;&#xFE0F; rename map</p>}
+            {!mapFull&&<p style={{color:T.sub,fontSize:13,marginBottom:12}}>
+              {mode==='zones'
+                ? <><strong style={{color:T.accent}}>Zones mode:</strong> drag on the grid to draw a new zone &bull; plants can't be moved/deleted until you switch to &#x1F331; Place mode</>
+                : <>Drag plants onto the grid &bull; Double-click to remove &bull; &#x270F;&#xFE0F; rename map</>}
+            </p>}
             {mapTab==='garden'&&(()=>{const c=getMapCfg('garden');return<MapGrid storageKey="garden-map" cols={c.cols} rows={c.rows} size={c.size} zones={null} defaultFilter="outdoor" allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
             {mapTab==='courtyard'&&(()=>{const c=getMapCfg('courtyard');return<MapGrid storageKey="courtyard-map" cols={c.cols} rows={c.rows} size={c.size} zones={COURTYARD_ZONES} defaultFilter="outdoor" defaultPos={COURTYARD_DEFAULT} defaultText={COURTYARD_TEXT} allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
             {mapTab==='greenhouse'&&(()=>{const c=getMapCfg('greenhouse');return<MapGrid storageKey="greenhouse-map" cols={c.cols} rows={c.rows} size={c.size} zones={GREENHOUSE_ZONES} defaultFilter="hydro" defaultPos={GREENHOUSE_DEFAULT} allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
