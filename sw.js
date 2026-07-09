@@ -1,4 +1,4 @@
-const CACHE = 'plant-haven-v7';
+const CACHE = 'plant-haven-v8';
 const ASSETS = ['/', '/index.html', '/icon-192.png', '/icon-512.png', '/manifest.json'];
 
 self.addEventListener('install', e => {

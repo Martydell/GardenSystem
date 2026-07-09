@@ -3072,9 +3072,7 @@ function Catalogue(){
               );
             })()}
             {!mapFull&&<p style={{color:T.sub,fontSize:13,marginBottom:12}}>
-              {mode==='zones'
-                ? <><strong style={{color:T.accent}}>Zones mode:</strong> drag on the grid to draw a new zone &bull; plants can't be moved/deleted until you switch to &#x1F331; Place mode</>
-                : <>Drag plants onto the grid &bull; Double-click to remove &bull; &#x270F;&#xFE0F; rename map</>}
+              Drag plants onto the grid &bull; Double-click to remove (in &#x1F331; Place mode) &bull; &#x270F;&#xFE0F; rename map
             </p>}
             {mapTab==='garden'&&(()=>{const c=getMapCfg('garden');return<MapGrid storageKey="garden-map" cols={c.cols} rows={c.rows} size={c.size} zones={null} defaultFilter="outdoor" allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
             {mapTab==='courtyard'&&(()=>{const c=getMapCfg('courtyard');return<MapGrid storageKey="courtyard-map" cols={c.cols} rows={c.rows} size={c.size} zones={COURTYARD_ZONES} defaultFilter="outdoor" defaultPos={COURTYARD_DEFAULT} defaultText={COURTYARD_TEXT} allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
