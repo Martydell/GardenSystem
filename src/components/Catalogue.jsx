@@ -246,8 +246,9 @@ export function Catalogue(){
   );
 
   // Renders a plant list grouped by type (Outdoor/Indoor/Greenhouse/Produce), search+tag filtered.
-  // Reused for a zone's Plants tab and Overview's global browse. `overviewMode` enables
-  // drag-to-zone and the per-card "move to zone" reassignment control.
+  // Reused for a zone's Plants tab and Overview's global browse. Every card gets the
+  // per-card "move to zone" control; `overviewMode` additionally enables drag-to-zone
+  // (the drop-target strip it targets only exists on the Overview page).
   function renderPlantSections(list, keyPrefix, overviewMode=false){
     const out = filterPlants(list);
     const byType = {
@@ -270,7 +271,7 @@ export function Catalogue(){
                   <Card key={p.id} plant={p} onSelect={setSelected} careLog={careLog} onLog={logCare}
                     onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}
                     onDragStart={overviewMode?handleCardDragStart:undefined}
-                    onReassign={overviewMode?reassignPlant:undefined} zoneOptions={overviewMode?AREAS:undefined}/>
+                    onReassign={reassignPlant} zoneOptions={AREAS}/>
                 ))}
               </div>
             </React.Fragment>

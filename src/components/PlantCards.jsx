@@ -126,6 +126,15 @@ export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeCo
     setCustomPhotoState(dataUrl);
     setCustomPhoto(plant.id,dataUrl);
   }
+  const [pendingZone,setPendingZone]=React.useState('');
+  const [justMoved,setJustMoved]=React.useState(false);
+  function saveReassign(){
+    if(!pendingZone)return;
+    onReassign(plant,pendingZone);
+    setPendingZone('');
+    setJustMoved(true);
+    setTimeout(()=>setJustMoved(false),1600);
+  }
   const flowering = isFloweringNow(plant);
   const wUrgency  = getUrgency(plant, careLog,'watered');
   const fUrgency  = getUrgency(plant, careLog,'fed');
@@ -267,12 +276,20 @@ export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeCo
           {onReassign&&zoneOptions&&(
             <div style={{display:'flex',gap:5,alignItems:'center',marginTop:'auto'}} onClick={e=>e.stopPropagation()}>
               <span style={{fontSize:13,flexShrink:0}}>&#x1F4CD;</span>
-              <select defaultValue="" onChange={e=>{ if(e.target.value){ onReassign(plant,e.target.value); } e.target.value=''; }}
+              <select value={pendingZone} onChange={e=>setPendingZone(e.target.value)}
                 style={{flex:1,fontSize:11,padding:'4px 5px',borderRadius:6,border:'1px solid '+T.border,
                   background:T.input,color:T.text}}>
-                <option value="" disabled>Move to zone&hellip;</option>
+                <option value="">Move to zone&hellip;</option>
                 {zoneOptions.map(z=><option key={z.key} value={z.key}>{z.label}</option>)}
               </select>
+              <button onClick={saveReassign} disabled={!pendingZone}
+                style={{flexShrink:0,padding:'4px 10px',fontSize:11,fontWeight:700,borderRadius:6,
+                  border:'1px solid '+(justMoved?'#22c55e':(pendingZone?T.accent:T.border)),
+                  background:justMoved?'rgba(34,197,94,0.15)':(pendingZone?T.accent:T.input),
+                  color:justMoved?'#22c55e':(pendingZone?'#fff':T.sub),
+                  cursor:pendingZone?'pointer':'default'}}>
+                {justMoved?'✓ Moved':'Save'}
+              </button>
             </div>
           )}
           <div style={{display:'flex',gap:4,marginTop:onReassign?0:'auto',flexWrap:'wrap'}}>
