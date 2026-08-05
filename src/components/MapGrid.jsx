@@ -221,7 +221,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
     const plants=ids.map(id=>allPlants.find(q=>String(q.id)===id)).filter(Boolean);
     if(plants.length) cellMap[key]=plants;
   });
-  const TC={outdoor:'#4a7c3f',indoor:'#1e40af',hydro:'#d97706'};
+  const TC={outdoor:'#4a7c3f',indoor:'#1e40af',hydro:'#d97706',produce:'#b91c1c'};
   function photo(p){return getCustomPhoto(p.id)||(plantCategory(p)==='indoor'?(INDOOR_PHOTOS[p.id]||STATIC_PHOTO_URLS[p.id]||null):STATIC_PHOTO_URLS[p.id]||null);}
   function getZn(x,y){
     return effectiveZones.find(z=>{const p=getZonePos(z);return x>=p.x&&x<p.x+z.w&&y>=p.y&&y<p.y+z.h;})||null;
@@ -240,7 +240,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
         <div style={{padding:'10px 8px',borderBottom:'1px solid '+T.border}}>
           <div style={{fontSize:11,color:T.sub,fontWeight:600,textTransform:'uppercase',letterSpacing:.5,marginBottom:6}}>Filter</div>
           <div style={{display:'flex',flexWrap:'wrap',gap:3}}>
-            {[['all','All'],['outdoor','Out'],['indoor','In'],['hydro','Glass']].map(([k,l])=>(
+            {[['all','All'],['outdoor','Out'],['indoor','In'],['hydro','Glass'],['produce','Prod']].map(([k,l])=>(
               <button key={k} onClick={()=>setZFilter(k)} style={{
                 padding:'3px 7px',borderRadius:20,border:'1px solid '+T.border,cursor:'pointer',fontSize:10,
                 background:zFilter===k?T.green:T.input,color:zFilter===k?'#fff':T.text}}>{l}

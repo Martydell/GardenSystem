@@ -109,7 +109,7 @@ export function getUrgency(plant, careLog, type='watered'){
 
 export const URG_COLOR = { overdue:'#ef4444', soon:'#f59e0b', ok:'#22c55e', unset:'#6b7280' };
 
-export function plantCategory(p){ const id=String(p.id); return id.startsWith('h')?'hydro':id.startsWith('i')?'indoor':'outdoor'; }
+export function plantCategory(p){ const id=String(p.id); return id.startsWith('h')?'hydro':id.startsWith('i')?'indoor':id.startsWith('p')?'produce':'outdoor'; }
 
 export function waterLevel(p){
   const w=(p.water||'').toLowerCase();
@@ -125,9 +125,10 @@ export const WATER_LEVEL_COLORS={
 };
 
 export function badgeForType(type){
-  if(type==='hydro')  return {badge:'HYDRO',   color:'#d97706'};
-  if(type==='indoor') return {badge:'INDOOR',  color:'#1e40af'};
-  return                     {badge:'OUTDOOR', color:'#4a7c3f'};
+  if(type==='hydro')   return {badge:'HYDRO',   color:'#d97706'};
+  if(type==='indoor')  return {badge:'INDOOR',  color:'#1e40af'};
+  if(type==='produce') return {badge:'PRODUCE', color:'#b91c1c'};
+  return                      {badge:'OUTDOOR', color:'#4a7c3f'};
 }
 
 export function parseSowMonths(sow){

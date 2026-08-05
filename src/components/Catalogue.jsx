@@ -4,10 +4,10 @@ import { DetailPanel } from './DetailPanel.jsx';
 import { IrrigationMap } from './Irrigation.jsx';
 import { MapGrid } from './MapGrid.jsx';
 import { BulkWaterModal, PestLogModal, PhotoLightbox } from './Modals.jsx';
-import { CoverSlideshow, HydroCard, IndoorCard, OutdoorCard } from './PlantCards.jsx';
+import { CoverSlideshow, HydroCard, IndoorCard, OutdoorCard, ProduceCard } from './PlantCards.jsx';
 import { NotificationManager, WeatherWidget } from './Weather.jsx';
 import { WishlistView } from './Wishlist.jsx';
-import { HYDRO_PLANTS, INDOOR_PLANTS, OUTDOOR_PLANTS, TAG_C } from '../data/plants.js';
+import { HYDRO_PLANTS, INDOOR_PLANTS, OUTDOOR_PLANTS, PRODUCE_PLANTS, TAG_C } from '../data/plants.js';
 import { COURTYARD_DEFAULT, COURTYARD_TEXT, COURTYARD_ZONES, GREENHOUSE_DEFAULT, GREENHOUSE_ZONES, INDOOR_ZONES } from '../data/zones.js';
 import { DARK, LIGHT, ThemeCtx, getUrgency, useIsMobile, useScrollCollapse } from '../utils.js';
 
@@ -80,7 +80,7 @@ export function Catalogue(){
   const [pestModal, setPestModal] = React.useState(null);
 
   const T = dark ? DARK : LIGHT;
-  const allPlants = React.useMemo(()=>[...OUTDOOR_PLANTS,...INDOOR_PLANTS,...HYDRO_PLANTS],[]);
+  const allPlants = React.useMemo(()=>[...OUTDOOR_PLANTS,...INDOOR_PLANTS,...HYDRO_PLANTS,...PRODUCE_PLANTS],[]);
 
   React.useEffect(()=>{
     const onScroll=()=>setCoverY(Math.min(80,50+window.scrollY*0.03));
@@ -163,6 +163,7 @@ export function Catalogue(){
   const fOutdoor = filterPlants(OUTDOOR_PLANTS);
   const fIndoor  = filterPlants(INDOOR_PLANTS);
   const fHydro   = filterPlants(HYDRO_PLANTS);
+  const fProduce = filterPlants(PRODUCE_PLANTS);
   const attention = allPlants.filter(p=>getUrgency(p,careLog,'watered').level==='overdue').length;
 
   const sectionHdr = (label,count) => (
@@ -245,6 +246,8 @@ export function Catalogue(){
             <span style={{color:'#93c5fd'}}>{INDOOR_PLANTS.length} indoor</span>
             &nbsp;&bull;&nbsp;
             <span style={{color:'#fcd34d'}}>{HYDRO_PLANTS.length} greenhouse</span>
+            &nbsp;&bull;&nbsp;
+            <span style={{color:'#fca5a5'}}>{PRODUCE_PLANTS.length} produce</span>
             &nbsp;&bull;&nbsp;
             {allPlants.length} plants
           </p>
@@ -368,7 +371,14 @@ export function Catalogue(){
                 careLog={careLog} onLog={logCare} onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}/>)}
             </div></>}
 
-          {!fOutdoor.length&&!fIndoor.length&&!fHydro.length&&(
+          {/* Herbs & Seasonal Produce */}
+          {fProduce.length>0&&<>{sectionHdr('&#x1F345; Herbs &amp; Seasonal Produce',fProduce.length)}
+            <div key={'pr-'+search+tags.join()} className="cards-grid" style={{display:'flex',flexWrap:'wrap',gap:M?8:16,marginBottom:8}}>
+              {fProduce.map((p,i)=><ProduceCard key={p.id} plant={p} onSelect={setSelected}
+                careLog={careLog} onLog={logCare} onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}/>)}
+            </div></>}
+
+          {!fOutdoor.length&&!fIndoor.length&&!fHydro.length&&!fProduce.length&&(
             <div style={{textAlign:'center',padding:60,color:T.sub,fontSize:16}}>
               No plants match your search.
             </div>

@@ -308,6 +308,11 @@ export function HydroCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pe
     badge="HYDRO" badgeColor="#d97706" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest}/>;
 }
 
+export function ProduceCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest}){
+  return <PlantCard plant={plant} onSelect={onSelect} photo={STATIC_PHOTO_URLS[plant.id]||null} loading={false}
+    badge="PRODUCE" badgeColor="#b91c1c" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest}/>;
+}
+
 export function AttentionCard({plant, careLog, onLog, onSelect}){
   const T = React.useContext(ThemeCtx);
   const photo = getCustomPhoto(plant.id)||(plant.type==='indoor'
