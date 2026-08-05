@@ -2,7 +2,7 @@ import React from 'react';
 import { INDOOR_PHOTOS, STATIC_PHOTO_URLS } from '../data/plants.js';
 import { ThemeCtx, getCustomPhoto, getUrgency, plantCategory, resizeImageToDataURL } from '../utils.js';
 
-export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPos,defaultText,allPlants,careLog,onSelect,fullHeight=false}){
+export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPos,defaultText,allPlants,careLog,onSelect,fullHeight=false,highlightPlantId=null}){
   const T=React.useContext(ThemeCtx);
   const [pos,setPos]=React.useState(()=>{
     try{
@@ -24,6 +24,13 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
   const clickTimerRef=React.useRef(null);
   const [hov,setHov]=React.useState(null);
   const [zFilter,setZFilter]=React.useState(defaultFilter||'all');
+  const highlightRef=React.useRef(null);
+  React.useEffect(()=>{
+    if(!highlightPlantId)return;
+    setZFilter('all');
+    const t=setTimeout(()=>highlightRef.current?.scrollIntoView({block:'center',behavior:'smooth'}),150);
+    return ()=>clearTimeout(t);
+  },[highlightPlantId]);
   const [showPlantPicker,setShowPlantPicker]=React.useState(false);
   const [pickerFilter,setPickerFilter]=React.useState(defaultFilter||'all');
   const [pickerSearch,setPickerSearch]=React.useState('');
@@ -256,13 +263,16 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
           {sidebar.map(p=>{
             const ph=photo(p),col=TC[plantCategory(p)];
             const cnt=countInMap(p.id);
+            const isHighlighted=highlightPlantId&&String(p.id)===String(highlightPlantId);
             return(
-              <div key={p.id} draggable
+              <div key={p.id} draggable ref={isHighlighted?highlightRef:undefined}
                 onDragStart={e=>{e.dataTransfer.setData('plantId',String(p.id));setDragId(String(p.id));}}
                 onDragEnd={()=>setDragId(null)}
+                className={isHighlighted?'urg-overdue':undefined}
                 style={{display:'flex',gap:7,alignItems:'center',padding:'5px 6px',borderRadius:7,marginBottom:3,
                   cursor:'grab',userSelect:'none',background:dragId===String(p.id)?T.surface:T.input,
-                  border:'1px solid '+T.border,borderLeft:'3px solid '+col,opacity:dragId===String(p.id)?.5:1}}>
+                  border:'1px solid '+(isHighlighted?'#22c55e':T.border),borderLeft:'3px solid '+col,
+                  boxShadow:isHighlighted?'0 0 0 2px rgba(34,197,94,0.5)':'none',opacity:dragId===String(p.id)?.5:1}}>
                 <div style={{width:28,height:28,borderRadius:5,overflow:'hidden',flexShrink:0,background:T.surface}}>
                   {ph&&<img src={ph} alt={p.name} style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
                 </div>

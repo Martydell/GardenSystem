@@ -54,7 +54,9 @@ async function main() {
   const rootLen1 = await page.evaluate(() => document.getElementById('root')?.innerHTML?.length || 0);
   console.log(`  Overview rendered, ${rootLen1} chars`);
 
-  // Zone: Courtyard -> Map
+  // Group: Outdoor -> Zone: Courtyard -> Map
+  await clickByText(page, 'button', 'Outdoor');
+  await new Promise(r => setTimeout(r, 800));
   await clickByText(page, 'button', 'Courtyard');
   await new Promise(r => setTimeout(r, 1000));
   await clickByText(page, 'button', 'Map');

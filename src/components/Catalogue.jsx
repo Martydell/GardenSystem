@@ -8,7 +8,7 @@ import { CoverSlideshow, HydroCard, IndoorCard, OutdoorCard, ProduceCard } from 
 import { PestsView } from './Pests.jsx';
 import { NotificationManager, WeatherWidget } from './Weather.jsx';
 import { WishlistView } from './Wishlist.jsx';
-import { AREAS, getArea } from '../data/areas.js';
+import { AREAS, GROUPS, areasInGroup, getArea } from '../data/areas.js';
 import { HYDRO_PLANTS, INDOOR_PLANTS, OUTDOOR_PLANTS, PRODUCE_PLANTS, TAG_C } from '../data/plants.js';
 import { DARK, LIGHT, ThemeCtx, getUrgency, plantCategory, plantsInArea, useIsMobile, useScrollCollapse } from '../utils.js';
 
@@ -20,11 +20,32 @@ const HDR_BY_TYPE = {
 
 export function Catalogue(){
   const [dark,    setDark]    = React.useState(true);
-  const [area,    setArea]    = React.useState('overview');
+  const [group,   setGroup]   = React.useState('overview');
+  const [area,    setArea]    = React.useState(null);
   const [areaTab, setAreaTab] = React.useState('plants');
+  const [highlightPlantId, setHighlightPlantId] = React.useState(null);
   const [mapFull, setMapFull] = React.useState(false);
   const [showMapSettings, setShowMapSettings] = React.useState(false);
   const [showFilters, setShowFilters] = React.useState(false);
+  function goGroup(g){
+    setGroup(g); setAreaTab('plants'); setHighlightPlantId(null);
+    if(g==='overview'){ setArea(null); return; }
+    const leaves=areasInGroup(g);
+    setArea(leaves[0]?.key||null);
+  }
+  function goArea(a){
+    setArea(a); setAreaTab('plants'); setHighlightPlantId(null);
+  }
+  function dropOnZone(e, leaf){
+    e.preventDefault();
+    const id=e.dataTransfer.getData('text/plain');
+    if(!id)return;
+    setGroup(leaf.group); setArea(leaf.key); setAreaTab('map'); setHighlightPlantId(id);
+  }
+  function handleCardDragStart(e, plant){
+    e.dataTransfer.setData('text/plain', String(plant.id));
+    e.dataTransfer.effectAllowed='move';
+  }
   const [mapSettings, setMapSettings] = React.useState(()=>{
     try{return JSON.parse(localStorage.getItem('map-settings')||'{}');}catch{return {};}
   });
@@ -163,16 +184,16 @@ export function Catalogue(){
   const attention = allPlants.filter(p=>getUrgency(p,careLog,'watered').level==='overdue').length;
 
   // Zone membership — derived live from each area's map placements (no plant record changes needed)
-  const currentArea = area!=='overview' ? getArea(area) : null;
-  const zonePlants = area!=='overview' ? plantsInArea(area, allPlants, currentArea.defaultPos) : [];
+  const currentArea = area ? getArea(area) : null;
+  const zonePlants = area ? plantsInArea(area, allPlants, currentArea.defaultPos) : [];
   const placedIds = React.useMemo(()=>{
-    if(area!=='overview') return new Set();
+    if(group!=='overview') return new Set();
     const ids=new Set();
     AREAS.forEach(a=>plantsInArea(a.key,allPlants,a.defaultPos).forEach(p=>ids.add(String(p.id))));
     return ids;
-  },[area,allPlants]);
-  const unplaced = area==='overview' ? allPlants.filter(p=>!placedIds.has(String(p.id))) : [];
-  const zoneActivePests = area!=='overview'
+  },[group,allPlants]);
+  const unplaced = group==='overview' ? allPlants.filter(p=>!placedIds.has(String(p.id))) : [];
+  const zoneActivePests = area
     ? (pestLog||[]).filter(e=>!e.resolved && zonePlants.some(p=>String(p.id)===String(e.plantId))).length
     : 0;
 
@@ -186,7 +207,7 @@ export function Catalogue(){
 
   // Renders a plant list grouped by type (Outdoor/Indoor/Greenhouse/Produce), search+tag filtered.
   // Reused for a zone's Plants tab, Overview's global browse, and Overview's Unplaced section.
-  function renderPlantSections(list, keyPrefix){
+  function renderPlantSections(list, keyPrefix, draggable=false){
     const out = filterPlants(list);
     const byType = {
       outdoor: out.filter(p=>plantCategory(p)==='outdoor'),
@@ -206,7 +227,8 @@ export function Catalogue(){
               <div key={keyPrefix+t+search+tags.join()} className="cards-grid" style={{display:'flex',flexWrap:'wrap',gap:M?8:16,marginBottom:8}}>
                 {arr.map((p,i)=>(
                   <Card key={p.id} plant={p} onSelect={setSelected} careLog={careLog} onLog={logCare}
-                    onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}/>
+                    onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}
+                    onDragStart={draggable?handleCardDragStart:undefined}/>
                 ))}
               </div>
             </React.Fragment>
@@ -255,15 +277,39 @@ export function Catalogue(){
     @media(prefers-reduced-motion:reduce){.plant-card,.plant-card:hover,.section-hdr,.cards-grid{animation:none;transition:none;transform:none;}}
   `;
 
-  const areaBtn = (key,label,icon,badge) => (
-    <button key={key} onClick={()=>{setArea(key);setAreaTab('plants');}} style={{
+  const groupBtn = (key,label,icon,badge) => (
+    <button key={key} onClick={()=>goGroup(key)} style={{
       padding:'8px 16px',border:'none',borderRadius:20,cursor:'pointer',fontSize:14,fontWeight:500,
-      background:area===key?T.green:T.input,color:area===key?'#fff':T.text,
+      background:group===key?T.green:T.input,color:group===key?'#fff':T.text,
       display:'flex',alignItems:'center',gap:6,flexShrink:0,whiteSpace:'nowrap',position:'relative'}}>
       <span dangerouslySetInnerHTML={{__html:icon}}/>{label}
       {badge>0&&<span style={{background:'#ef4444',color:'#fff',borderRadius:'50%',
         minWidth:18,height:18,padding:'0 4px',fontSize:10,display:'inline-flex',alignItems:'center',
         justifyContent:'center',fontWeight:700}}>{badge}</span>}
+    </button>
+  );
+
+  const leafBtn = (leaf) => (
+    <button key={leaf.key} onClick={()=>goArea(leaf.key)} style={{
+      padding:'6px 14px',border:'none',borderRadius:20,cursor:'pointer',fontSize:13,fontWeight:500,
+      background:area===leaf.key?T.accent:T.input,color:area===leaf.key?'#fff':T.text,
+      display:'flex',alignItems:'center',gap:6,flexShrink:0,whiteSpace:'nowrap'}}>
+      <span dangerouslySetInnerHTML={{__html:leaf.icon}}/>{getAreaName(leaf.key)}
+    </button>
+  );
+
+  const [dropHover, setDropHover] = React.useState(null);
+  const dropZoneBtn = (leaf) => (
+    <button key={leaf.key}
+      onClick={()=>{setGroup(leaf.group);goArea(leaf.key);}}
+      onDragOver={e=>{e.preventDefault();setDropHover(leaf.key);}}
+      onDragLeave={()=>setDropHover(h=>h===leaf.key?null:h)}
+      onDrop={e=>{setDropHover(null);dropOnZone(e,leaf);}}
+      style={{padding:'6px 12px',border:'1px dashed '+(dropHover===leaf.key?T.accent:T.border),
+        borderRadius:20,cursor:'pointer',fontSize:12,fontWeight:500,
+        background:dropHover===leaf.key?'rgba(74,124,63,0.15)':T.input,color:T.text,
+        display:'flex',alignItems:'center',gap:5,flexShrink:0,whiteSpace:'nowrap'}}>
+      <span dangerouslySetInnerHTML={{__html:leaf.icon}}/>{getAreaName(leaf.key)}
     </button>
   );
 
@@ -336,20 +382,31 @@ export function Catalogue(){
           color:'#fff',padding:'6px 14px',cursor:'pointer',fontSize:13,backdropFilter:'blur(6px)'}}/>
       </div>
 
-      {/* ── Zone (Area) navigation — scrollable chip row, all viewports ── */}
+      {/* ── Group navigation — Overview + Indoor/Outdoor/Green House ── */}
       <div style={{position:'sticky',top:0,zIndex:100,background:T.bg,
         borderBottom:'1px solid '+T.border,padding:'10px 16px'}}>
         <div className="chip-row" style={{display:'flex',gap:8,overflowX:'auto',alignItems:'center',
           msOverflowStyle:'none',scrollbarWidth:'none',WebkitOverflowScrolling:'touch'}}>
-          {areaBtn('overview','Overview','&#x1F3E1;',attention||null)}
-          {AREAS.map(a=>areaBtn(a.key,getAreaName(a.key),a.icon,null))}
+          {groupBtn('overview','Overview','&#x1F3E1;',attention||null)}
+          {GROUPS.map(g=>groupBtn(g.key,g.label,g.icon,null))}
           {!M&&<div style={{marginLeft:8,flexShrink:0}}><NotificationManager allPlants={allPlants} careLog={careLog}/></div>}
         </div>
       </div>
 
-      {/* ── Feature navigation — desktop sticky row (mobile uses bottom nav) ── */}
-      {!M&&area!=='overview'&&(
+      {/* ── Leaf zone navigation — the specific zones within the selected group ── */}
+      {group!=='overview'&&(
         <div style={{position:'sticky',top:45,zIndex:99,background:T.bg,
+          borderBottom:'1px solid '+T.border,padding:'8px 16px'}}>
+          <div className="chip-row" style={{display:'flex',gap:6,overflowX:'auto',
+            msOverflowStyle:'none',scrollbarWidth:'none',WebkitOverflowScrolling:'touch'}}>
+            {areasInGroup(group).map(leafBtn)}
+          </div>
+        </div>
+      )}
+
+      {/* ── Feature navigation — desktop sticky row (mobile uses bottom nav) ── */}
+      {!M&&area&&(
+        <div style={{position:'sticky',top:90,zIndex:98,background:T.bg,
           borderBottom:'1px solid '+T.border,padding:'8px 16px',display:'flex',gap:8}}>
           {FEATURE_TABS.map(([k,icon,lbl,badge])=>(
             <button key={k} onClick={()=>setAreaTab(k)} style={{
@@ -365,13 +422,23 @@ export function Catalogue(){
         </div>
       )}
 
-      <div style={{maxWidth:areaTab==='map'&&area!=='overview'?'none':1200,margin:'0 auto',
-        padding:areaTab==='map'&&area!=='overview'?(M?'0 8px 100px':'0 16px 40px'):(M?'0 12px 100px':'0 20px 60px')}}>
+      <div style={{maxWidth:areaTab==='map'&&area?'none':1200,margin:'0 auto',
+        padding:areaTab==='map'&&area?(M?'0 8px 100px':'0 16px 40px'):(M?'0 12px 100px':'0 20px 60px')}}>
 
         {/* ── Overview ── */}
-        {area==='overview'&&(
+        {group==='overview'&&(
           <div style={{paddingTop:20}}>
             <WeatherWidget/>
+
+            <div style={{background:T.card,border:'1px solid '+T.border,borderRadius:10,padding:'10px 12px',margin:'8px 0 24px'}}>
+              <div style={{fontSize:11,color:T.sub,fontWeight:600,textTransform:'uppercase',letterSpacing:.5,marginBottom:8}}>
+                &#x1F4CD; Drag a plant card onto a zone to jump straight to placing it
+              </div>
+              <div className="chip-row" style={{display:'flex',gap:6,overflowX:'auto',
+                msOverflowStyle:'none',scrollbarWidth:'none',WebkitOverflowScrolling:'touch'}}>
+                {AREAS.map(dropZoneBtn)}
+              </div>
+            </div>
 
             <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'8px 0 6px'}}>&#x1F4CA; Care Dashboard</h2>
             <p style={{color:T.sub,fontSize:13,marginBottom:16}}>Track watering, feeding, repotting, and recent care activity across every zone.</p>
@@ -391,7 +458,8 @@ export function Catalogue(){
                   {unplaced.map((p,i)=>{
                     const Card=CARD_BY_TYPE[plantCategory(p)];
                     return <Card key={p.id} plant={p} onSelect={setSelected} careLog={careLog} onLog={logCare}
-                      onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}/>;
+                      onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}
+                      onDragStart={handleCardDragStart}/>;
                   })}
                 </div>
               </>
@@ -408,12 +476,12 @@ export function Catalogue(){
                 </button>
               </div>
             )}
-            {renderPlantSections(allPlants,'ov-')}
+            {renderPlantSections(allPlants,'ov-',true)}
           </div>
         )}
 
         {/* ── Zone: Plants ── */}
-        {area!=='overview'&&areaTab==='plants'&&(
+        {area&&areaTab==='plants'&&(
           <div style={{paddingTop:20}}>
             {searchBar}
             {renderPlantSections(zonePlants,area+'-')}
@@ -421,7 +489,7 @@ export function Catalogue(){
         )}
 
         {/* ── Zone: Map ── */}
-        {area!=='overview'&&areaTab==='map'&&(
+        {area&&areaTab==='map'&&(
           <div style={{paddingTop:mapFull?0:20}}>
             {!mapFull&&(
               <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16,flexWrap:'wrap'}}>
@@ -534,19 +602,20 @@ export function Catalogue(){
             <MapGrid storageKey={area+'-map'} cols={mapCfg.cols} rows={mapCfg.rows} size={mapCfg.size}
               zones={currentArea.zones} defaultFilter={currentArea.defaultFilter}
               defaultPos={currentArea.defaultPos} defaultText={currentArea.defaultText}
-              allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>
+              allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}
+              highlightPlantId={highlightPlantId}/>
           </div>
         )}
 
         {/* ── Zone: Irrigation ── */}
-        {area!=='overview'&&areaTab==='irrigation'&&(
+        {area&&areaTab==='irrigation'&&(
           <div style={{paddingTop:28}}>
             <IrrigationView area={currentArea} allPlants={allPlants}/>
           </div>
         )}
 
         {/* ── Zone: Care ── */}
-        {area!=='overview'&&areaTab==='care'&&(
+        {area&&areaTab==='care'&&(
           <div style={{paddingTop:28}}>
             <h2 style={{fontSize:20,fontWeight:700,color:T.text,marginBottom:6}}>&#x1F4C5; {getAreaName(area)} Care Schedule</h2>
             <p style={{color:T.sub,fontSize:13,marginBottom:24}}>Watering calendar, seasonal tasks, and sowing guide for this zone.</p>
@@ -566,7 +635,7 @@ export function Catalogue(){
         )}
 
         {/* ── Zone: Pests ── */}
-        {area!=='overview'&&areaTab==='pests'&&(
+        {area&&areaTab==='pests'&&(
           <div style={{paddingTop:28}}>
             <PestsView plants={zonePlants} pestLog={pestLog} onResolve={resolvePest} onSelect={setSelected}/>
           </div>
@@ -574,7 +643,7 @@ export function Catalogue(){
       </div>
 
       {/* ── Mobile Bottom Navigation — feature tabs within a zone ── */}
-      {M&&area!=='overview'&&(
+      {M&&area&&(
         <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:200,
           background:T.card,borderTop:'1px solid '+T.border,
           display:'flex',alignItems:'stretch',

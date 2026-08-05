@@ -1,6 +1,6 @@
 import React from 'react';
 import { INDOOR_PHOTOS, INDOOR_WIKI_SLUGS, STATIC_PHOTO_URLS, WIKI_SLUGS } from '../data/plants.js';
-import { ThemeCtx, URG_COLOR, feedInterval, fmtDate, getCustomPhoto, getUrgency, isFloweringNow, repotApplicable, resizeImageToDataURL, setCustomPhoto, useIsMobile } from '../utils.js';
+import { ThemeCtx, URG_COLOR, feedInterval, fmtDate, getCustomPhoto, getUrgency, isFloweringNow, repotApplicable, resizeImageToDataURL, setCustomPhoto, useIsMobile, waterInterval } from '../utils.js';
 
 export function CoverSlideshow({allPlants}){
   const slides=React.useMemo(()=>{
@@ -116,7 +116,7 @@ export function PhotoCard({src, loading, name, onZoom, onUpload}){
   );
 }
 
-export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeColor, careLog, onLog, onPhotoZoom, animIdx=0, pestLog=[], onPest}){
+export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeColor, careLog, onLog, onPhotoZoom, animIdx=0, pestLog=[], onPest, onDragStart}){
   const T = React.useContext(ThemeCtx);
   const M = useIsMobile();
   const [flipped, setFlipped] = React.useState(false);
@@ -181,7 +181,9 @@ export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeCo
   );
 
   return (
-    <div className="plant-card" style={cardStyle} onClick={()=>setFlipped(f=>!f)}>
+    <div className="plant-card" style={cardStyle} onClick={()=>setFlipped(f=>!f)}
+      draggable={!!onDragStart}
+      onDragStart={onDragStart?e=>onDragStart(e,plant):undefined}>
       <div style={innerStyle}>
         {/* FRONT */}
         <div style={faceBase}>
@@ -226,6 +228,12 @@ export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeCo
             <div style={{fontWeight:700,fontSize:13,color:T.text}}>{plant.name}</div>
             <div style={{fontSize:9,color:T.sub,opacity:0.7}}>tap to flip ↩</div>
           </div>
+          {[['&#x1F4A7;','Water due',`every ${waterInterval(plant)}d · last ${wUrgency.days!=null?wUrgency.days+'d ago':'never logged'}`],
+            ['&#x1F9EA;','Feed due',`every ${feedInterval(plant)}d · last ${fUrgency.days!=null?fUrgency.days+'d ago':'never logged'}`]].map(([ic,lb,val])=>(
+            <div key={lb} style={{display:'flex',gap:6,fontSize:11,color:T.sub}}>
+              <span dangerouslySetInnerHTML={{__html:ic}}/><strong style={{color:T.text,minWidth:62}}>{lb}</strong><span>{val}</span>
+            </div>
+          ))}
           {[['&#x1F4A7;','Water',plant.water],['&#x2600;','Light',plant.light],['&#x1F321;','Temp',plant.temp]].map(([ic,lb,val])=>(
             <div key={lb} style={{display:'flex',gap:6,fontSize:11,color:T.sub}}>
               <span dangerouslySetInnerHTML={{__html:ic}}/><strong style={{color:T.text,minWidth:38}}>{lb}</strong><span>{val}</span>
@@ -278,7 +286,7 @@ export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeCo
   );
 }
 
-export function OutdoorCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest}){
+export function OutdoorCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest,onDragStart}){
   const [photo,setPhoto]=React.useState(STATIC_PHOTO_URLS[plant.id]||null);
   const [loading,setLoading]=React.useState(!STATIC_PHOTO_URLS[plant.id]);
   React.useEffect(()=>{
@@ -288,10 +296,10 @@ export function OutdoorCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,
       .catch(()=>setLoading(false));
   },[plant.id]);
   return <PlantCard plant={plant} onSelect={onSelect} photo={photo} loading={loading}
-    badge="OUTDOOR" badgeColor="#4a7c3f" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest}/>;
+    badge="OUTDOOR" badgeColor="#4a7c3f" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest} onDragStart={onDragStart}/>;
 }
 
-export function IndoorCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest}){
+export function IndoorCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest,onDragStart}){
   const photo=INDOOR_PHOTOS[plant.id]||STATIC_PHOTO_URLS[plant.id]||null;
   const [wikiPhoto,setWikiPhoto]=React.useState(null);
   React.useEffect(()=>{
@@ -300,16 +308,16 @@ export function IndoorCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,p
       .then(r=>r.json()).then(d=>setWikiPhoto(d?.originalimage?.source||null)).catch(()=>{});
   },[plant.id]);
   return <PlantCard plant={plant} onSelect={onSelect} photo={photo||wikiPhoto} loading={false}
-    badge="INDOOR" badgeColor="#1e40af" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest}/>;
+    badge="INDOOR" badgeColor="#1e40af" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest} onDragStart={onDragStart}/>;
 }
 
-export function HydroCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest}){
+export function HydroCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest,onDragStart}){
   return <PlantCard plant={plant} onSelect={onSelect} photo={STATIC_PHOTO_URLS[plant.id]||null} loading={false}
-    badge="HYDRO" badgeColor="#d97706" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest}/>;
+    badge="HYDRO" badgeColor="#d97706" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest} onDragStart={onDragStart}/>;
 }
 
-export function ProduceCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest}){
-  return <PlantCard plant={plant} onSelect={onSelect} photo={STATIC_PHOTO_URLS[plant.id]||null} loading={false}
+export function ProduceCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest,onDragStart}){
+  return <PlantCard plant={plant} onSelect={onSelect} photo={STATIC_PHOTO_URLS[plant.id]||null} loading={false} onDragStart={onDragStart}
     badge="PRODUCE" badgeColor="#b91c1c" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest}/>;
 }
 
