@@ -274,21 +274,23 @@ export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeCo
             </div>;
           })()}
           {onReassign&&zoneOptions&&(
-            <div style={{display:'flex',gap:5,alignItems:'center',marginTop:'auto'}} onClick={e=>e.stopPropagation()}>
-              <span style={{fontSize:13,flexShrink:0}}>&#x1F4CD;</span>
-              <select value={pendingZone} onChange={e=>setPendingZone(e.target.value)}
-                style={{flex:1,fontSize:11,padding:'4px 5px',borderRadius:6,border:'1px solid '+T.border,
-                  background:T.input,color:T.text}}>
-                <option value="">Move to zone&hellip;</option>
-                {zoneOptions.map(z=><option key={z.key} value={z.key}>{z.label}</option>)}
-              </select>
+            <div style={{display:'flex',flexDirection:'column',gap:4,marginTop:'auto'}} onClick={e=>e.stopPropagation()}>
+              <div style={{display:'flex',gap:5,alignItems:'center',minWidth:0}}>
+                <span style={{fontSize:12,flexShrink:0}}>&#x1F4CD;</span>
+                <select value={pendingZone} onChange={e=>setPendingZone(e.target.value)}
+                  style={{flex:'1 1 0',minWidth:0,width:0,fontSize:10,padding:'3px 4px',borderRadius:6,
+                    border:'1px solid '+T.border,background:T.input,color:T.text}}>
+                  <option value="">Move to zone&hellip;</option>
+                  {zoneOptions.map(z=><option key={z.key} value={z.key}>{z.label}</option>)}
+                </select>
+              </div>
               <button onClick={saveReassign} disabled={!pendingZone}
-                style={{flexShrink:0,padding:'4px 10px',fontSize:11,fontWeight:700,borderRadius:6,
+                style={{width:'100%',padding:'5px 0',fontSize:11,fontWeight:700,borderRadius:6,
                   border:'1px solid '+(justMoved?'#22c55e':(pendingZone?T.accent:T.border)),
                   background:justMoved?'rgba(34,197,94,0.15)':(pendingZone?T.accent:T.input),
                   color:justMoved?'#22c55e':(pendingZone?'#fff':T.sub),
                   cursor:pendingZone?'pointer':'default'}}>
-                {justMoved?'✓ Moved':'Save'}
+                {justMoved?'✓ Moved':'Save zone'}
               </button>
             </div>
           )}
