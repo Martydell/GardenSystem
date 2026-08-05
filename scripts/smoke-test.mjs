@@ -96,7 +96,7 @@ async function main() {
   await clickByText(page, 'button', 'Overview');
   await new Promise(r => setTimeout(r, 1200));
   const overviewText = await page.evaluate(() => document.getElementById('root')?.innerText || '');
-  const overviewOk = overviewText.includes('Care Dashboard') && overviewText.includes('Wishlist') && overviewText.includes('Browse All Plants');
+  const overviewOk = overviewText.includes('Care Dashboard') && overviewText.includes('Wishlist') && overviewText.includes('All Plants');
   console.log(`  overview (dashboard/wishlist/browse) rendered: ${overviewOk}`);
 
   await browser.close();

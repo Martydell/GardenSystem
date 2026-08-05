@@ -25,3 +25,12 @@ export const AREAS = [
 
 export function getArea(key){ return AREAS.find(a=>a.key===key) || AREAS[0]; }
 export function areasInGroup(groupKey){ return AREAS.filter(a=>a.group===groupKey); }
+
+// Fallback zone for a plant's old outdoor/indoor/hydro/produce type, used when it hasn't
+// been manually placed on any zone map yet — matches the pre-zone catalogue sections.
+export const DEFAULT_ZONE_FOR_CATEGORY = {
+  outdoor: 'garden',
+  indoor:  'indoor',
+  hydro:   'greenhouse',
+  produce: 'herbgarden',
+};

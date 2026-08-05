@@ -116,7 +116,7 @@ export function PhotoCard({src, loading, name, onZoom, onUpload}){
   );
 }
 
-export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeColor, careLog, onLog, onPhotoZoom, animIdx=0, pestLog=[], onPest, onDragStart}){
+export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeColor, careLog, onLog, onPhotoZoom, animIdx=0, pestLog=[], onPest, onDragStart, onReassign, zoneOptions}){
   const T = React.useContext(ThemeCtx);
   const M = useIsMobile();
   const [flipped, setFlipped] = React.useState(false);
@@ -264,7 +264,18 @@ export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeCo
               </div>}
             </div>;
           })()}
-          <div style={{display:'flex',gap:4,marginTop:'auto',flexWrap:'wrap'}}>
+          {onReassign&&zoneOptions&&(
+            <div style={{display:'flex',gap:5,alignItems:'center',marginTop:'auto'}} onClick={e=>e.stopPropagation()}>
+              <span style={{fontSize:13,flexShrink:0}}>&#x1F4CD;</span>
+              <select defaultValue="" onChange={e=>{ if(e.target.value){ onReassign(plant,e.target.value); } e.target.value=''; }}
+                style={{flex:1,fontSize:11,padding:'4px 5px',borderRadius:6,border:'1px solid '+T.border,
+                  background:T.input,color:T.text}}>
+                <option value="" disabled>Move to zone&hellip;</option>
+                {zoneOptions.map(z=><option key={z.key} value={z.key}>{z.label}</option>)}
+              </select>
+            </div>
+          )}
+          <div style={{display:'flex',gap:4,marginTop:onReassign?0:'auto',flexWrap:'wrap'}}>
             {actionBtn('Watered','watered','&#x1F4A7;')}
             {actionBtn('Fed','fed','&#x1F9EA;')}
             {repotApplicable(plant)&&actionBtn('Repotted','repotted','&#x1FAB4;')}
@@ -286,7 +297,7 @@ export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeCo
   );
 }
 
-export function OutdoorCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest,onDragStart}){
+export function OutdoorCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest,onDragStart,onReassign,zoneOptions}){
   const [photo,setPhoto]=React.useState(STATIC_PHOTO_URLS[plant.id]||null);
   const [loading,setLoading]=React.useState(!STATIC_PHOTO_URLS[plant.id]);
   React.useEffect(()=>{
@@ -296,10 +307,10 @@ export function OutdoorCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,
       .catch(()=>setLoading(false));
   },[plant.id]);
   return <PlantCard plant={plant} onSelect={onSelect} photo={photo} loading={loading}
-    badge="OUTDOOR" badgeColor="#4a7c3f" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest} onDragStart={onDragStart}/>;
+    badge="OUTDOOR" badgeColor="#4a7c3f" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest} onDragStart={onDragStart} onReassign={onReassign} zoneOptions={zoneOptions}/>;
 }
 
-export function IndoorCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest,onDragStart}){
+export function IndoorCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest,onDragStart,onReassign,zoneOptions}){
   const photo=INDOOR_PHOTOS[plant.id]||STATIC_PHOTO_URLS[plant.id]||null;
   const [wikiPhoto,setWikiPhoto]=React.useState(null);
   React.useEffect(()=>{
@@ -308,16 +319,16 @@ export function IndoorCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,p
       .then(r=>r.json()).then(d=>setWikiPhoto(d?.originalimage?.source||null)).catch(()=>{});
   },[plant.id]);
   return <PlantCard plant={plant} onSelect={onSelect} photo={photo||wikiPhoto} loading={false}
-    badge="INDOOR" badgeColor="#1e40af" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest} onDragStart={onDragStart}/>;
+    badge="INDOOR" badgeColor="#1e40af" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest} onDragStart={onDragStart} onReassign={onReassign} zoneOptions={zoneOptions}/>;
 }
 
-export function HydroCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest,onDragStart}){
+export function HydroCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest,onDragStart,onReassign,zoneOptions}){
   return <PlantCard plant={plant} onSelect={onSelect} photo={STATIC_PHOTO_URLS[plant.id]||null} loading={false}
-    badge="HYDRO" badgeColor="#d97706" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest} onDragStart={onDragStart}/>;
+    badge="HYDRO" badgeColor="#d97706" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest} onDragStart={onDragStart} onReassign={onReassign} zoneOptions={zoneOptions}/>;
 }
 
-export function ProduceCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest,onDragStart}){
-  return <PlantCard plant={plant} onSelect={onSelect} photo={STATIC_PHOTO_URLS[plant.id]||null} loading={false} onDragStart={onDragStart}
+export function ProduceCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,pestLog,onPest,onDragStart,onReassign,zoneOptions}){
+  return <PlantCard plant={plant} onSelect={onSelect} photo={STATIC_PHOTO_URLS[plant.id]||null} loading={false} onDragStart={onDragStart} onReassign={onReassign} zoneOptions={zoneOptions}
     badge="PRODUCE" badgeColor="#b91c1c" careLog={careLog} onLog={onLog} onPhotoZoom={onPhotoZoom} animIdx={animIdx} pestLog={pestLog} onPest={onPest}/>;
 }
 

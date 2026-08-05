@@ -8,7 +8,7 @@ import { CoverSlideshow, HydroCard, IndoorCard, OutdoorCard, ProduceCard } from 
 import { PestsView } from './Pests.jsx';
 import { NotificationManager, WeatherWidget } from './Weather.jsx';
 import { WishlistView } from './Wishlist.jsx';
-import { AREAS, GROUPS, areasInGroup, getArea } from '../data/areas.js';
+import { AREAS, DEFAULT_ZONE_FOR_CATEGORY, GROUPS, areasInGroup, getArea } from '../data/areas.js';
 import { HYDRO_PLANTS, INDOOR_PLANTS, OUTDOOR_PLANTS, PRODUCE_PLANTS, TAG_C } from '../data/plants.js';
 import { DARK, LIGHT, ThemeCtx, getUrgency, plantCategory, plantsInArea, useIsMobile, useScrollCollapse } from '../utils.js';
 
@@ -45,6 +45,40 @@ export function Catalogue(){
   function handleCardDragStart(e, plant){
     e.dataTransfer.setData('text/plain', String(plant.id));
     e.dataTransfer.effectAllowed='move';
+  }
+  const [dataVersion, setDataVersion] = React.useState(0);
+  function reassignPlant(plant, targetKey){
+    const pid = String(plant.id);
+    AREAS.forEach(a=>{
+      let pos=null;
+      try{ pos = JSON.parse(localStorage.getItem(a.key+'-map')||'null'); }catch{}
+      if(!pos) pos = a.defaultPos||null;
+      if(!pos || !Object.values(pos).some(v=>String(v).split(',').includes(pid))) return;
+      const next={};
+      let changed=false;
+      Object.entries(pos).forEach(([cell,val])=>{
+        const ids=String(val).split(',').filter(Boolean);
+        if(ids.includes(pid)){
+          changed=true;
+          const filtered=ids.filter(x=>x!==pid);
+          if(filtered.length) next[cell]=filtered.join(',');
+        } else next[cell]=val;
+      });
+      if(changed){ try{localStorage.setItem(a.key+'-map',JSON.stringify(next));}catch{} }
+    });
+    const target=getArea(targetKey);
+    let tpos=null;
+    try{ tpos = JSON.parse(localStorage.getItem(targetKey+'-map')||'null'); }catch{}
+    tpos = {...(tpos||target.defaultPos||{})};
+    let placed=false;
+    for(let y=0;y<target.rows&&!placed;y++){
+      for(let x=0;x<target.cols&&!placed;x++){
+        const key=`${x},${y}`;
+        if(!tpos[key]){ tpos[key]=pid; placed=true; }
+      }
+    }
+    try{ localStorage.setItem(targetKey+'-map',JSON.stringify(tpos)); }catch{}
+    setDataVersion(v=>v+1);
   }
   const [mapSettings, setMapSettings] = React.useState(()=>{
     try{return JSON.parse(localStorage.getItem('map-settings')||'{}');}catch{return {};}
@@ -183,16 +217,22 @@ export function Catalogue(){
 
   const attention = allPlants.filter(p=>getUrgency(p,careLog,'watered').level==='overdue').length;
 
-  // Zone membership — derived live from each area's map placements (no plant record changes needed)
+  // Zone membership — derived live from each area's map placements (no plant record changes
+  // needed). Anything never manually placed anywhere falls back to the zone matching its old
+  // outdoor/indoor/hydro/produce type, so nothing sits permanently "unplaced".
   const currentArea = area ? getArea(area) : null;
-  const zonePlants = area ? plantsInArea(area, allPlants, currentArea.defaultPos) : [];
   const placedIds = React.useMemo(()=>{
-    if(group!=='overview') return new Set();
     const ids=new Set();
     AREAS.forEach(a=>plantsInArea(a.key,allPlants,a.defaultPos).forEach(p=>ids.add(String(p.id))));
     return ids;
-  },[group,allPlants]);
-  const unplaced = group==='overview' ? allPlants.filter(p=>!placedIds.has(String(p.id))) : [];
+  },[allPlants,dataVersion]);
+  const zonePlants = area ? (()=>{
+    const explicit = plantsInArea(area, allPlants, currentArea.defaultPos);
+    const ids = new Set(explicit.map(p=>String(p.id)));
+    const fallback = allPlants.filter(p=>
+      !placedIds.has(String(p.id)) && !ids.has(String(p.id)) && DEFAULT_ZONE_FOR_CATEGORY[plantCategory(p)]===area);
+    return [...explicit, ...fallback];
+  })() : [];
   const zoneActivePests = area
     ? (pestLog||[]).filter(e=>!e.resolved && zonePlants.some(p=>String(p.id)===String(e.plantId))).length
     : 0;
@@ -206,8 +246,9 @@ export function Catalogue(){
   );
 
   // Renders a plant list grouped by type (Outdoor/Indoor/Greenhouse/Produce), search+tag filtered.
-  // Reused for a zone's Plants tab, Overview's global browse, and Overview's Unplaced section.
-  function renderPlantSections(list, keyPrefix, draggable=false){
+  // Reused for a zone's Plants tab and Overview's global browse. `overviewMode` enables
+  // drag-to-zone and the per-card "move to zone" reassignment control.
+  function renderPlantSections(list, keyPrefix, overviewMode=false){
     const out = filterPlants(list);
     const byType = {
       outdoor: out.filter(p=>plantCategory(p)==='outdoor'),
@@ -228,7 +269,8 @@ export function Catalogue(){
                 {arr.map((p,i)=>(
                   <Card key={p.id} plant={p} onSelect={setSelected} careLog={careLog} onLog={logCare}
                     onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}
-                    onDragStart={draggable?handleCardDragStart:undefined}/>
+                    onDragStart={overviewMode?handleCardDragStart:undefined}
+                    onReassign={overviewMode?reassignPlant:undefined} zoneOptions={overviewMode?AREAS:undefined}/>
                 ))}
               </div>
             </React.Fragment>
@@ -440,32 +482,7 @@ export function Catalogue(){
               </div>
             </div>
 
-            <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'8px 0 6px'}}>&#x1F4CA; Care Dashboard</h2>
-            <p style={{color:T.sub,fontSize:13,marginBottom:16}}>Track watering, feeding, repotting, and recent care activity across every zone.</p>
-            <DashboardView allPlants={allPlants} careLog={careLog} onLog={logCare} onSelect={setSelected}/>
-            <BackupRestorePanel/>
-
-            <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'32px 0 6px'}}>&#x1F331; Wishlist</h2>
-            <WishlistView wishlist={wishlist} onAdd={addWish} onRemove={removeWish}/>
-
-            {unplaced.length>0&&(
-              <>
-                <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'32px 0 6px'}}>&#x1F4CD; Unplaced ({unplaced.length})</h2>
-                <p style={{color:T.sub,fontSize:13,marginBottom:16}}>
-                  Not yet placed on any zone's map — open a zone's Map tab and drag these on to assign them.
-                </p>
-                <div className="cards-grid" style={{display:'flex',flexWrap:'wrap',gap:M?8:16,marginBottom:8}}>
-                  {unplaced.map((p,i)=>{
-                    const Card=CARD_BY_TYPE[plantCategory(p)];
-                    return <Card key={p.id} plant={p} onSelect={setSelected} careLog={careLog} onLog={logCare}
-                      onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}
-                      onDragStart={handleCardDragStart}/>;
-                  })}
-                </div>
-              </>
-            )}
-
-            <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'32px 0 6px'}}>&#x1F50D; Browse All Plants</h2>
+            <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'8px 0 6px'}}>&#x1F50D; All Plants</h2>
             {searchBar}
             {attention>0&&(
               <div style={{marginBottom:8,display:'flex',justifyContent:'flex-end'}}>
@@ -477,6 +494,14 @@ export function Catalogue(){
               </div>
             )}
             {renderPlantSections(allPlants,'ov-',true)}
+
+            <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'32px 0 6px'}}>&#x1F4CA; Care Dashboard</h2>
+            <p style={{color:T.sub,fontSize:13,marginBottom:16}}>Track watering, feeding, repotting, and recent care activity across every zone.</p>
+            <DashboardView allPlants={allPlants} careLog={careLog} onLog={logCare} onSelect={setSelected}/>
+            <BackupRestorePanel/>
+
+            <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'32px 0 6px'}}>&#x1F331; Wishlist</h2>
+            <WishlistView wishlist={wishlist} onAdd={addWish} onRemove={removeWish}/>
           </div>
         )}
 
