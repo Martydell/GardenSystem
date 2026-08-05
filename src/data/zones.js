@@ -46,6 +46,11 @@ export const COURTYARD_TEXT={
   "10,6":"Bench","11,6":"Chairs","12,6":"Table",
 };
 
+export const HYDROSTART_DEFAULT={
+  "0,0":"p02","1,0":"p03","2,0":"h09","3,0":"p07",
+  "0,1":"p06","1,1":"h06","2,1":"h08","3,1":"p04","4,1":"p05",
+};
+
 export const INDOOR_ZONES=[
   // Living room — large main space with floor plants around the sofa
   {id:'living',   label:'Living Room',           col:'rgba(59,130,246,0.10)', border:'#3b82f6',x:0, y:0,w:10,h:5},

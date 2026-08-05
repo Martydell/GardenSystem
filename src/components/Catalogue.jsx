@@ -164,11 +164,11 @@ export function Catalogue(){
 
   // Zone membership — derived live from each area's map placements (no plant record changes needed)
   const currentArea = area!=='overview' ? getArea(area) : null;
-  const zonePlants = area!=='overview' ? plantsInArea(area, allPlants) : [];
+  const zonePlants = area!=='overview' ? plantsInArea(area, allPlants, currentArea.defaultPos) : [];
   const placedIds = React.useMemo(()=>{
     if(area!=='overview') return new Set();
     const ids=new Set();
-    AREAS.forEach(a=>plantsInArea(a.key,allPlants).forEach(p=>ids.add(String(p.id))));
+    AREAS.forEach(a=>plantsInArea(a.key,allPlants,a.defaultPos).forEach(p=>ids.add(String(p.id))));
     return ids;
   },[area,allPlants]);
   const unplaced = area==='overview' ? allPlants.filter(p=>!placedIds.has(String(p.id))) : [];

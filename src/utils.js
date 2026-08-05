@@ -111,9 +111,10 @@ export const URG_COLOR = { overdue:'#ef4444', soon:'#f59e0b', ok:'#22c55e', unse
 
 export function plantCategory(p){ const id=String(p.id); return id.startsWith('h')?'hydro':id.startsWith('i')?'indoor':id.startsWith('p')?'produce':'outdoor'; }
 
-export function plantsInArea(areaKey, allPlants){
-  let pos={};
-  try{ pos = JSON.parse(localStorage.getItem(areaKey+'-map')||'{}'); }catch{}
+export function plantsInArea(areaKey, allPlants, defaultPos){
+  let pos=null;
+  try{ pos = JSON.parse(localStorage.getItem(areaKey+'-map')||'null'); }catch{}
+  if(!pos) pos = defaultPos||{};
   const ids = new Set();
   Object.values(pos).forEach(v=>String(v).split(',').filter(Boolean).forEach(id=>ids.add(id)));
   return allPlants.filter(p=>ids.has(String(p.id)));
