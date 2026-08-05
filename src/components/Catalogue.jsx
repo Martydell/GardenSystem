@@ -1,32 +1,34 @@
 import React from 'react';
 import { BackupRestorePanel, DashboardView, SeasonalTasksPanel, SowingCalendar, WateringCalendarView } from './Calendars.jsx';
 import { DetailPanel } from './DetailPanel.jsx';
-import { IrrigationMap } from './Irrigation.jsx';
+import { IrrigationView } from './Irrigation.jsx';
 import { MapGrid } from './MapGrid.jsx';
-import { BulkWaterModal, PestLogModal, PhotoLightbox } from './Modals.jsx';
+import { BulkWaterModal, FiltersDrawer, PestLogModal, PhotoLightbox } from './Modals.jsx';
 import { CoverSlideshow, HydroCard, IndoorCard, OutdoorCard, ProduceCard } from './PlantCards.jsx';
+import { PestsView } from './Pests.jsx';
 import { NotificationManager, WeatherWidget } from './Weather.jsx';
 import { WishlistView } from './Wishlist.jsx';
+import { AREAS, getArea } from '../data/areas.js';
 import { HYDRO_PLANTS, INDOOR_PLANTS, OUTDOOR_PLANTS, PRODUCE_PLANTS, TAG_C } from '../data/plants.js';
-import { COURTYARD_DEFAULT, COURTYARD_TEXT, COURTYARD_ZONES, GREENHOUSE_DEFAULT, GREENHOUSE_ZONES, INDOOR_ZONES } from '../data/zones.js';
-import { DARK, LIGHT, ThemeCtx, getUrgency, useIsMobile, useScrollCollapse } from '../utils.js';
+import { DARK, LIGHT, ThemeCtx, getUrgency, plantCategory, plantsInArea, useIsMobile, useScrollCollapse } from '../utils.js';
+
+const CARD_BY_TYPE = {outdoor:OutdoorCard, indoor:IndoorCard, hydro:HydroCard, produce:ProduceCard};
+const HDR_BY_TYPE = {
+  outdoor:'&#x1F33B; Outdoor Garden', indoor:'&#x1F3E0; Indoor Plants',
+  hydro:'&#x1F9EA; Greenhouse &amp; Hydroponics', produce:'&#x1F345; Herbs &amp; Seasonal Produce',
+};
 
 export function Catalogue(){
   const [dark,    setDark]    = React.useState(true);
-  const [view,    setView]    = React.useState('catalogue');
-  const [mapTab,  setMapTab]  = React.useState('garden');
+  const [area,    setArea]    = React.useState('overview');
+  const [areaTab, setAreaTab] = React.useState('plants');
   const [mapFull, setMapFull] = React.useState(false);
   const [showMapSettings, setShowMapSettings] = React.useState(false);
+  const [showFilters, setShowFilters] = React.useState(false);
   const [mapSettings, setMapSettings] = React.useState(()=>{
     try{return JSON.parse(localStorage.getItem('map-settings')||'{}');}catch{return {};}
   });
-  const MAP_SIZE_DEFAULTS={
-    garden:    {cols:14,rows:9, size:76},
-    courtyard: {cols:14,rows:8, size:76},
-    greenhouse:{cols:7, rows:9, size:86},
-    indoor:    {cols:16,rows:10,size:64},
-  };
-  function getMapCfg(k){return{...MAP_SIZE_DEFAULTS[k],...(mapSettings[k]||{})};}
+  function getMapCfg(k){ const a=getArea(k); return {cols:a.cols,rows:a.rows,size:a.size,...(mapSettings[k]||{})}; }
   function updateMapCfg(k,patch){
     const next={...mapSettings,[k]:{...((mapSettings[k])||{}),...patch}};
     setMapSettings(next);
@@ -38,26 +40,24 @@ export function Catalogue(){
     try{localStorage.setItem('map-settings',JSON.stringify(next));}catch{}
   }
   function resetMapLayout(k){
-    if(!window.confirm(`Reset the ${getMapName(k)} map layout? This clears all plant placements, custom zones, labels, colours and any background photo you've set for this map, restoring the built-in defaults.`))return;
+    if(!window.confirm(`Reset the ${getAreaName(k)} map layout? This clears all plant placements, custom zones, labels, colours and any background photo you've set for this map, restoring the built-in defaults.`))return;
     const sk=k+'-map';
-    ['','-text','-color','-disabled','-czones','-rzones','-zlabels','-bg'].forEach(suffix=>{
+    ['','-text','-color','-disabled','-czones','-rzones','-zlabels','-bg','-drip-installed'].forEach(suffix=>{
       try{localStorage.removeItem(sk+suffix);}catch{}
     });
     window.location.reload();
   }
-  const MAP_DEFAULTS={garden:'Back Garden',courtyard:'Courtyard',greenhouse:'Greenhouse',indoor:'Indoor'};
-  const MAP_ICONS={garden:'&#x1F33B;',courtyard:'&#x2600;&#xFE0F;',greenhouse:'&#x1F9EA;',indoor:'&#x1F3E0;'};
-  const [mapNames,setMapNames]=React.useState(()=>{
+  const [areaNames,setAreaNames]=React.useState(()=>{
     try{return JSON.parse(localStorage.getItem('map-names')||'{}');}catch{return {};}
   });
-  const [editingMap,setEditingMap]=React.useState(null);
+  const [editingArea,setEditingArea]=React.useState(null);
   const [editingName,setEditingName]=React.useState('');
-  function getMapName(k){return mapNames[k]||MAP_DEFAULTS[k]||k;}
-  function saveMapName(k,v){
-    const n={...mapNames,[k]:v.trim()||MAP_DEFAULTS[k]};
-    setMapNames(n);
+  function getAreaName(k){return areaNames[k]||getArea(k).label;}
+  function saveAreaName(k,v){
+    const n={...areaNames,[k]:v.trim()||getArea(k).label};
+    setAreaNames(n);
     try{localStorage.setItem('map-names',JSON.stringify(n));}catch{}
-    setEditingMap(null);
+    setEditingArea(null);
   }
   const [search,  setSearch]  = React.useState('');
   const [tags,    setTags]    = React.useState([]);
@@ -160,11 +160,21 @@ export function Catalogue(){
     });
   }
 
-  const fOutdoor = filterPlants(OUTDOOR_PLANTS);
-  const fIndoor  = filterPlants(INDOOR_PLANTS);
-  const fHydro   = filterPlants(HYDRO_PLANTS);
-  const fProduce = filterPlants(PRODUCE_PLANTS);
   const attention = allPlants.filter(p=>getUrgency(p,careLog,'watered').level==='overdue').length;
+
+  // Zone membership — derived live from each area's map placements (no plant record changes needed)
+  const currentArea = area!=='overview' ? getArea(area) : null;
+  const zonePlants = area!=='overview' ? plantsInArea(area, allPlants) : [];
+  const placedIds = React.useMemo(()=>{
+    if(area!=='overview') return new Set();
+    const ids=new Set();
+    AREAS.forEach(a=>plantsInArea(a.key,allPlants).forEach(p=>ids.add(String(p.id))));
+    return ids;
+  },[area,allPlants]);
+  const unplaced = area==='overview' ? allPlants.filter(p=>!placedIds.has(String(p.id))) : [];
+  const zoneActivePests = area!=='overview'
+    ? (pestLog||[]).filter(e=>!e.resolved && zonePlants.some(p=>String(p.id)===String(e.plantId))).length
+    : 0;
 
   const sectionHdr = (label,count) => (
     <h2 className="section-hdr" style={{fontSize:18,fontWeight:700,color:T.accent,marginBottom:16,marginTop:32,
@@ -173,6 +183,43 @@ export function Catalogue(){
       <span style={{fontSize:13,color:T.sub,fontWeight:400}}>{count} plants</span>
     </h2>
   );
+
+  // Renders a plant list grouped by type (Outdoor/Indoor/Greenhouse/Produce), search+tag filtered.
+  // Reused for a zone's Plants tab, Overview's global browse, and Overview's Unplaced section.
+  function renderPlantSections(list, keyPrefix){
+    const out = filterPlants(list);
+    const byType = {
+      outdoor: out.filter(p=>plantCategory(p)==='outdoor'),
+      indoor:  out.filter(p=>plantCategory(p)==='indoor'),
+      hydro:   out.filter(p=>plantCategory(p)==='hydro'),
+      produce: out.filter(p=>plantCategory(p)==='produce'),
+    };
+    const anyResults = Object.values(byType).some(a=>a.length>0);
+    return (
+      <>
+        {['outdoor','indoor','hydro','produce'].map(t=>{
+          const arr=byType[t]; if(!arr.length) return null;
+          const Card=CARD_BY_TYPE[t];
+          return (
+            <React.Fragment key={t}>
+              {sectionHdr(HDR_BY_TYPE[t],arr.length)}
+              <div key={keyPrefix+t+search+tags.join()} className="cards-grid" style={{display:'flex',flexWrap:'wrap',gap:M?8:16,marginBottom:8}}>
+                {arr.map((p,i)=>(
+                  <Card key={p.id} plant={p} onSelect={setSelected} careLog={careLog} onLog={logCare}
+                    onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}/>
+                ))}
+              </div>
+            </React.Fragment>
+          );
+        })}
+        {!anyResults&&(
+          <div style={{textAlign:'center',padding:60,color:T.sub,fontSize:16}}>
+            No plants match your search.
+          </div>
+        )}
+      </>
+    );
+  }
 
   const M = useIsMobile();
   const scrolled = useScrollCollapse();
@@ -208,18 +255,47 @@ export function Catalogue(){
     @media(prefers-reduced-motion:reduce){.plant-card,.plant-card:hover,.section-hdr,.cards-grid{animation:none;transition:none;transform:none;}}
   `;
 
-  const navBtn = (key,label,extra='') => (
-    <button onClick={()=>setView(key)} style={{
-      padding:'8px 18px', border:'none', borderRadius:20,cursor:'pointer',fontSize:14,fontWeight:500,
-      background:view===key?T.green:T.input, color:view===key?'#fff':T.text,
-      position:'relative',
-    }}>
-      <span dangerouslySetInnerHTML={{__html:label}}/>
-      {extra&&<span style={{background:'#ef4444',color:'#fff',borderRadius:'50%',
-        width:18,height:18,fontSize:10,display:'inline-flex',alignItems:'center',
-        justifyContent:'center',marginLeft:6,fontWeight:700}}>{extra}</span>}
+  const areaBtn = (key,label,icon,badge) => (
+    <button key={key} onClick={()=>{setArea(key);setAreaTab('plants');}} style={{
+      padding:'8px 16px',border:'none',borderRadius:20,cursor:'pointer',fontSize:14,fontWeight:500,
+      background:area===key?T.green:T.input,color:area===key?'#fff':T.text,
+      display:'flex',alignItems:'center',gap:6,flexShrink:0,whiteSpace:'nowrap',position:'relative'}}>
+      <span dangerouslySetInnerHTML={{__html:icon}}/>{label}
+      {badge>0&&<span style={{background:'#ef4444',color:'#fff',borderRadius:'50%',
+        minWidth:18,height:18,padding:'0 4px',fontSize:10,display:'inline-flex',alignItems:'center',
+        justifyContent:'center',fontWeight:700}}>{badge}</span>}
     </button>
   );
+
+  const FEATURE_TABS = [
+    ['plants','&#x1F33F;','Plants',null],
+    ['map','&#x1F5FA;','Map',null],
+    ['irrigation','&#x1F4A7;','Irrigation',null],
+    ['care','&#x1F4C5;','Care',null],
+    ['pests','&#x1F41B;','Pests',zoneActivePests||null],
+  ];
+
+  const searchBar = (
+    <div style={{position:'sticky',top:M?0:52,zIndex:90,background:T.bg,
+      borderBottom:'1px solid '+T.border,marginBottom:16,padding:M?'8px 0':'12px 0'}}>
+      <div style={{display:'flex',gap:8,alignItems:'center'}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)}
+          placeholder="Search plants..." style={{
+            flex:1,padding:M?'10px 14px':'10px 16px',background:T.input,
+            border:'1px solid '+T.border,borderRadius:10,color:T.text,
+            fontSize:14,outline:'none'}}/>
+        <button onClick={()=>setShowFilters(true)} style={{
+          padding:M?'10px 14px':'10px 16px',borderRadius:10,cursor:'pointer',fontSize:13,fontWeight:600,
+          border:'1px solid '+(tags.length?T.accent:T.border),
+          background:tags.length?T.accent:T.input,color:tags.length?'#fff':T.text,
+          whiteSpace:'nowrap',flexShrink:0}}>
+          &#x1F50D; {tags.length>0?`Filters (${tags.length})`:'Filters'}
+        </button>
+      </div>
+    </div>
+  );
+
+  const mapCfg = currentArea ? getMapCfg(area) : null;
 
   return (
     <ThemeCtx.Provider value={T}>
@@ -260,182 +336,126 @@ export function Catalogue(){
           color:'#fff',padding:'6px 14px',cursor:'pointer',fontSize:13,backdropFilter:'blur(6px)'}}/>
       </div>
 
-      {/* ── Navigation (desktop only — mobile uses bottom nav) ── */}
-      {!M&&<div style={{position:'sticky',top:0,zIndex:100,background:T.bg,
-        borderBottom:'1px solid '+T.border,padding:'10px 16px',
-        display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
-        {navBtn('catalogue','&#x1F33F; Plants')}
-        {navBtn('map',      '&#x1F5FA; Maps')}
-        {navBtn('irrigation','&#x1F4A7; Irrigation')}
-        {navBtn('calendar', '&#x1F4C5; Care Schedule')}
-        {navBtn('dashboard','&#x1F4CA; Dashboard',attention||'')}
-        {navBtn('wishlist', '&#x1F331; Wishlist',wishlist.length||'')}
-        <NotificationManager allPlants={allPlants} careLog={careLog}/>
-      </div>}
+      {/* ── Zone (Area) navigation — scrollable chip row, all viewports ── */}
+      <div style={{position:'sticky',top:0,zIndex:100,background:T.bg,
+        borderBottom:'1px solid '+T.border,padding:'10px 16px'}}>
+        <div className="chip-row" style={{display:'flex',gap:8,overflowX:'auto',alignItems:'center',
+          msOverflowStyle:'none',scrollbarWidth:'none',WebkitOverflowScrolling:'touch'}}>
+          {areaBtn('overview','Overview','&#x1F3E1;',attention||null)}
+          {AREAS.map(a=>areaBtn(a.key,getAreaName(a.key),a.icon,null))}
+          {!M&&<div style={{marginLeft:8,flexShrink:0}}><NotificationManager allPlants={allPlants} careLog={careLog}/></div>}
+        </div>
+      </div>
 
-      <div style={{maxWidth:view==='map'?'none':1200,margin:'0 auto',
-        padding:view==='map'?(M?'0 8px 100px':'0 16px 40px'):(M?'0 12px 100px':'0 20px 60px')}}>
-        {/* ── Catalogue View ── */}
-        {view==='catalogue'&&(<>
-          {/* Search + Tags */}
-          <div style={{position:'sticky',top:M?0:52,zIndex:90,background:T.bg,
-            borderBottom:'1px solid '+T.border,marginBottom:16}}>
-            {/* Search row */}
-            <div style={{display:'flex',gap:8,alignItems:'center',padding:M?'8px 0':'12px 0 8px'}}>
-              <input value={search} onChange={e=>setSearch(e.target.value)}
-                placeholder="Search plants..." style={{
-                  flex:1,padding:M?'10px 14px':'10px 16px',background:T.input,
-                  border:'1px solid '+T.border,borderRadius:10,color:T.text,
-                  fontSize:14,outline:'none'}}/>
-              {!M&&scrolled&&tags.length>0&&(
-                <span style={{background:T.accent,color:'#fff',borderRadius:20,
-                  padding:'3px 10px',fontSize:12,fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>
-                  {tags.length} filter{tags.length!==1?'s':''} active
-                </span>
-              )}
-            </div>
-            {/* Tag chips:
-                Mobile  — single horizontal scroll row, always visible, no wrapping
-                Desktop — wrapping rows, auto-collapse on scroll */}
-            {M?(
-              <div className="chip-row" style={{
-                display:'flex',gap:7,overflowX:'auto',paddingBottom:10,
-                msOverflowStyle:'none',scrollbarWidth:'none',WebkitOverflowScrolling:'touch'}}>
-                {tags.length>0&&(
-                  <button onClick={()=>setTags([])} style={{
-                    flexShrink:0,padding:'6px 12px',borderRadius:20,whiteSpace:'nowrap',
-                    border:'1px solid #ef4444',background:'rgba(239,68,68,0.12)',
-                    color:'#ef4444',cursor:'pointer',fontSize:12,fontWeight:700}}>
-                    &#x2715; Clear
-                  </button>
-                )}
-                {allTags.map(t=>{
-                  const cfg=TAG_C[t]||{},on=tags.includes(t);
-                  return <button key={t} onClick={()=>toggleTag(t)} style={{
-                    flexShrink:0,padding:'6px 14px',borderRadius:20,whiteSpace:'nowrap',
-                    border:'1px solid '+(on?T.accent:T.border),
-                    background:on?(cfg.bg||T.accent):(cfg.bg||T.input),
-                    color:on?'#fff':(cfg.text||T.sub),
-                    cursor:'pointer',fontSize:12,fontWeight:on?700:400,
-                  }}>{t}</button>;
-                })}
-              </div>
-            ):(
-              <div style={{maxHeight:scrolled?0:300,overflow:'hidden',
-                transition:'max-height 0.25s ease',paddingBottom:scrolled?0:10}}>
-                <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                  {allTags.map(t=>{
-                    const cfg=TAG_C[t]||{};
-                    return <button key={t} onClick={()=>toggleTag(t)} style={{
-                      padding:'4px 10px',borderRadius:20,
-                      border:'1px solid '+(tags.includes(t)?T.accent:T.border),
-                      background:tags.includes(t)?(cfg.bg||T.accent):(cfg.bg||T.tag),
-                      color:tags.includes(t)?'#fff':(cfg.text||T.tagText),
-                      cursor:'pointer',fontSize:12,fontWeight:tags.includes(t)?600:400,
-                    }}>{t}</button>;
+      {/* ── Feature navigation — desktop sticky row (mobile uses bottom nav) ── */}
+      {!M&&area!=='overview'&&(
+        <div style={{position:'sticky',top:45,zIndex:99,background:T.bg,
+          borderBottom:'1px solid '+T.border,padding:'8px 16px',display:'flex',gap:8}}>
+          {FEATURE_TABS.map(([k,icon,lbl,badge])=>(
+            <button key={k} onClick={()=>setAreaTab(k)} style={{
+              padding:'6px 14px',border:'none',borderRadius:20,cursor:'pointer',fontSize:13,fontWeight:500,
+              background:areaTab===k?T.accent:T.input,color:areaTab===k?'#fff':T.text,
+              display:'flex',alignItems:'center',gap:6}}>
+              <span dangerouslySetInnerHTML={{__html:icon}}/>{lbl}
+              {badge>0&&<span style={{background:'#ef4444',color:'#fff',borderRadius:'50%',
+                minWidth:16,height:16,padding:'0 4px',fontSize:9,display:'inline-flex',alignItems:'center',
+                justifyContent:'center',fontWeight:700}}>{badge}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div style={{maxWidth:areaTab==='map'&&area!=='overview'?'none':1200,margin:'0 auto',
+        padding:areaTab==='map'&&area!=='overview'?(M?'0 8px 100px':'0 16px 40px'):(M?'0 12px 100px':'0 20px 60px')}}>
+
+        {/* ── Overview ── */}
+        {area==='overview'&&(
+          <div style={{paddingTop:20}}>
+            <WeatherWidget/>
+
+            <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'8px 0 6px'}}>&#x1F4CA; Care Dashboard</h2>
+            <p style={{color:T.sub,fontSize:13,marginBottom:16}}>Track watering, feeding, repotting, and recent care activity across every zone.</p>
+            <DashboardView allPlants={allPlants} careLog={careLog} onLog={logCare} onSelect={setSelected}/>
+            <BackupRestorePanel/>
+
+            <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'32px 0 6px'}}>&#x1F331; Wishlist</h2>
+            <WishlistView wishlist={wishlist} onAdd={addWish} onRemove={removeWish}/>
+
+            {unplaced.length>0&&(
+              <>
+                <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'32px 0 6px'}}>&#x1F4CD; Unplaced ({unplaced.length})</h2>
+                <p style={{color:T.sub,fontSize:13,marginBottom:16}}>
+                  Not yet placed on any zone's map — open a zone's Map tab and drag these on to assign them.
+                </p>
+                <div className="cards-grid" style={{display:'flex',flexWrap:'wrap',gap:M?8:16,marginBottom:8}}>
+                  {unplaced.map((p,i)=>{
+                    const Card=CARD_BY_TYPE[plantCategory(p)];
+                    return <Card key={p.id} plant={p} onSelect={setSelected} careLog={careLog} onLog={logCare}
+                      onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}/>;
                   })}
                 </div>
+              </>
+            )}
+
+            <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'32px 0 6px'}}>&#x1F50D; Browse All Plants</h2>
+            {searchBar}
+            {attention>0&&(
+              <div style={{marginBottom:8,display:'flex',justifyContent:'flex-end'}}>
+                <button onClick={()=>setBulkWaterModal(true)} style={{
+                  padding:'6px 14px',background:'rgba(59,130,246,0.12)',border:'1px solid rgba(59,130,246,0.35)',
+                  borderRadius:8,color:'#3b82f6',fontSize:12,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+                  &#x1F4A7; Water all overdue ({attention})
+                </button>
               </div>
             )}
+            {renderPlantSections(allPlants,'ov-')}
           </div>
+        )}
 
-          {/* Bulk water button */}
-          {attention>0&&(
-            <div style={{marginBottom:8,display:'flex',justifyContent:'flex-end'}}>
-              <button onClick={()=>setBulkWaterModal(true)} style={{
-                padding:'6px 14px',background:'rgba(59,130,246,0.12)',border:'1px solid rgba(59,130,246,0.35)',
-                borderRadius:8,color:'#3b82f6',fontSize:12,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
-                &#x1F4A7; Water all overdue ({attention})
-              </button>
-            </div>
-          )}
+        {/* ── Zone: Plants ── */}
+        {area!=='overview'&&areaTab==='plants'&&(
+          <div style={{paddingTop:20}}>
+            {searchBar}
+            {renderPlantSections(zonePlants,area+'-')}
+          </div>
+        )}
 
-          {/* Outdoor */}
-          {fOutdoor.length>0&&<>{sectionHdr('&#x1F33B; Outdoor Garden',fOutdoor.length)}
-            <div key={'out-'+search+tags.join()} className="cards-grid" style={{display:'flex',flexWrap:'wrap',gap:M?8:16,marginBottom:8}}>
-              {fOutdoor.map((p,i)=><OutdoorCard key={p.id} plant={p} onSelect={setSelected}
-                careLog={careLog} onLog={logCare} onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}/>)}
-            </div></>}
-
-          {/* Indoor */}
-          {fIndoor.length>0&&<>{sectionHdr('&#x1F3E0; Indoor Plants',fIndoor.length)}
-            <div key={'in-'+search+tags.join()} className="cards-grid" style={{display:'flex',flexWrap:'wrap',gap:M?8:16,marginBottom:8}}>
-              {fIndoor.map((p,i)=><IndoorCard key={p.id} plant={p} onSelect={setSelected}
-                careLog={careLog} onLog={logCare} onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}/>)}
-            </div></>}
-
-          {/* Greenhouse */}
-          {fHydro.length>0&&<>{sectionHdr('&#x1F9EA; Greenhouse & Hydroponics',fHydro.length)}
-            <div key={'hy-'+search+tags.join()} className="cards-grid" style={{display:'flex',flexWrap:'wrap',gap:M?8:16,marginBottom:8}}>
-              {fHydro.map((p,i)=><HydroCard key={p.id} plant={p} onSelect={setSelected}
-                careLog={careLog} onLog={logCare} onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}/>)}
-            </div></>}
-
-          {/* Herbs & Seasonal Produce */}
-          {fProduce.length>0&&<>{sectionHdr('&#x1F345; Herbs &amp; Seasonal Produce',fProduce.length)}
-            <div key={'pr-'+search+tags.join()} className="cards-grid" style={{display:'flex',flexWrap:'wrap',gap:M?8:16,marginBottom:8}}>
-              {fProduce.map((p,i)=><ProduceCard key={p.id} plant={p} onSelect={setSelected}
-                careLog={careLog} onLog={logCare} onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}/>)}
-            </div></>}
-
-          {!fOutdoor.length&&!fIndoor.length&&!fHydro.length&&!fProduce.length&&(
-            <div style={{textAlign:'center',padding:60,color:T.sub,fontSize:16}}>
-              No plants match your search.
-            </div>
-          )}
-        </>)}
-
-        {/* ── Maps View ── */}
-        {view==='map'&&(
+        {/* ── Zone: Map ── */}
+        {area!=='overview'&&areaTab==='map'&&(
           <div style={{paddingTop:mapFull?0:20}}>
-            {/* Header row — hidden when full-screen */}
             {!mapFull&&(
               <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16,flexWrap:'wrap'}}>
-                <h2 style={{fontSize:20,fontWeight:700,color:T.text}}>&#x1F5FA; Plant Maps</h2>
-                <div style={{display:'flex',gap:6,marginLeft:'auto',flexWrap:'wrap',alignItems:'center'}}>
-                  {['indoor','courtyard','garden','greenhouse'].map(k=>(
-                    <div key={k} style={{display:'flex',alignItems:'center',gap:0}}>
-                      {editingMap===k?(
-                        <input autoFocus value={editingName}
-                          onChange={e=>setEditingName(e.target.value)}
-                          onBlur={()=>saveMapName(k,editingName)}
-                          onKeyDown={e=>{
-                            if(e.key==='Enter')saveMapName(k,editingName);
-                            if(e.key==='Escape')setEditingMap(null);
-                          }}
-                          style={{padding:'4px 10px',borderRadius:'20px 0 0 20px',border:'1px solid '+T.accent,
-                            background:T.input,color:T.text,fontSize:12,outline:'none',width:110}}/>
-                      ):(
-                        <button onClick={()=>setMapTab(k)} style={{
-                          padding:'5px 10px 5px 14px',borderRadius:20,
-                          border:'1px solid '+T.border,cursor:'pointer',fontSize:12,
-                          background:mapTab===k?T.green:T.input,
-                          color:mapTab===k?'#fff':T.text,fontWeight:mapTab===k?700:400,
-                          display:'flex',alignItems:'center',gap:5}}>
-                          <span dangerouslySetInnerHTML={{__html:MAP_ICONS[k]}}/>
-                          {getMapName(k)}
-                        </button>
-                      )}
-                      {editingMap!==k&&(
-                        <button onClick={e=>{e.stopPropagation();setEditingMap(k);setEditingName(getMapName(k));}}
-                          title="Rename map"
-                          style={{padding:'5px 8px',border:'1px solid '+T.border,borderLeft:'none',
-                            borderRadius:'0 20px 20px 0',cursor:'pointer',fontSize:11,lineHeight:1,
-                            background:mapTab===k?T.green:T.input,
-                            color:mapTab===k?'rgba(255,255,255,0.75)':T.sub}}>
-                          &#x270F;&#xFE0F;
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  {/* Settings */}
+                <div style={{display:'flex',alignItems:'center',gap:0}}>
+                  {editingArea===area?(
+                    <input autoFocus value={editingName}
+                      onChange={e=>setEditingName(e.target.value)}
+                      onBlur={()=>saveAreaName(area,editingName)}
+                      onKeyDown={e=>{
+                        if(e.key==='Enter')saveAreaName(area,editingName);
+                        if(e.key==='Escape')setEditingArea(null);
+                      }}
+                      style={{padding:'4px 10px',borderRadius:10,border:'1px solid '+T.accent,
+                        background:T.input,color:T.text,fontSize:18,fontWeight:700,outline:'none',width:200}}/>
+                  ):(
+                    <h2 style={{fontSize:20,fontWeight:700,color:T.text,display:'flex',alignItems:'center',gap:8}}>
+                      <span dangerouslySetInnerHTML={{__html:currentArea.icon}}/> {getAreaName(area)} Map
+                    </h2>
+                  )}
+                  {editingArea!==area&&(
+                    <button onClick={()=>{setEditingArea(area);setEditingName(getAreaName(area));}}
+                      title="Rename zone" style={{marginLeft:6,padding:'4px 8px',border:'1px solid '+T.border,
+                        borderRadius:20,cursor:'pointer',fontSize:11,background:T.input,color:T.sub}}>
+                      &#x270F;&#xFE0F;
+                    </button>
+                  )}
+                </div>
+                <div style={{display:'flex',gap:6,marginLeft:'auto',alignItems:'center'}}>
                   <button onClick={()=>setShowMapSettings(s=>!s)} title="Customise map grid"
                     style={{padding:'5px 10px',borderRadius:20,border:'1px solid '+(showMapSettings?T.accent:T.border),
                       cursor:'pointer',fontSize:13,background:showMapSettings?'rgba(74,124,63,0.12)':T.input,
                       color:showMapSettings?T.accent:T.sub}}>
                     &#x2699;&#xFE0F;
                   </button>
-                  {/* Expand to full screen */}
                   <button onClick={()=>setMapFull(true)} title="Full screen"
                     style={{padding:'5px 10px',borderRadius:20,border:'1px solid '+T.border,
                       cursor:'pointer',fontSize:13,background:T.input,color:T.sub}}>
@@ -444,18 +464,11 @@ export function Catalogue(){
                 </div>
               </div>
             )}
-            {/* Compact bar shown only in full-screen mode */}
             {mapFull&&(
-              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6,flexWrap:'wrap'}}>
-                {['indoor','courtyard','garden','greenhouse'].map(k=>(
-                  <button key={k} onClick={()=>setMapTab(k)} style={{
-                    padding:'4px 12px',borderRadius:20,border:'1px solid '+T.border,cursor:'pointer',fontSize:11,
-                    background:mapTab===k?T.green:T.input,color:mapTab===k?'#fff':T.text,
-                    fontWeight:mapTab===k?700:400,display:'flex',alignItems:'center',gap:4}}>
-                    <span dangerouslySetInnerHTML={{__html:MAP_ICONS[k]}}/>
-                    {getMapName(k)}
-                  </button>
-                ))}
+              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+                <span style={{fontSize:13,fontWeight:700,color:T.text,display:'flex',alignItems:'center',gap:6}}>
+                  <span dangerouslySetInnerHTML={{__html:currentArea.icon}}/> {getAreaName(area)}
+                </span>
                 <button onClick={()=>setMapFull(false)} title="Exit full screen"
                   style={{marginLeft:'auto',padding:'4px 10px',borderRadius:20,border:'1px solid '+T.border,
                     cursor:'pointer',fontSize:13,background:T.input,color:T.sub}}>
@@ -463,34 +476,33 @@ export function Catalogue(){
                 </button>
               </div>
             )}
-            {/* Map settings panel */}
             {showMapSettings&&!mapFull&&(()=>{
-              const cfg=getMapCfg(mapTab);
-              const def=MAP_SIZE_DEFAULTS[mapTab];
+              const cfg=mapCfg;
+              const def={cols:currentArea.cols,rows:currentArea.rows,size:currentArea.size};
               const isCustom=JSON.stringify(cfg)!==JSON.stringify(def);
               return(
                 <div style={{background:T.card,border:'1px solid '+T.border,borderRadius:10,
                   padding:'10px 14px',marginBottom:12,display:'flex',alignItems:'center',
                   gap:16,flexWrap:'wrap'}}>
                   <span style={{fontSize:12,fontWeight:700,color:T.text}}>
-                    &#x2699;&#xFE0F; {getMapName(mapTab)}
+                    &#x2699;&#xFE0F; {getAreaName(area)}
                   </span>
                   <div style={{display:'flex',alignItems:'center',gap:6}}>
                     <span style={{fontSize:11,color:T.sub}}>Cols</span>
                     <input type="number" min={3} max={30} value={cfg.cols}
-                      onChange={e=>updateMapCfg(mapTab,{cols:Math.max(3,Math.min(30,+e.target.value||cfg.cols))})}
+                      onChange={e=>updateMapCfg(area,{cols:Math.max(3,Math.min(30,+e.target.value||cfg.cols))})}
                       style={{width:52,padding:'4px 6px',borderRadius:6,border:'1px solid '+T.border,
                         background:T.input,color:T.text,fontSize:12,textAlign:'center',outline:'none'}}/>
                     <span style={{fontSize:11,color:T.sub}}>Rows</span>
                     <input type="number" min={3} max={24} value={cfg.rows}
-                      onChange={e=>updateMapCfg(mapTab,{rows:Math.max(3,Math.min(24,+e.target.value||cfg.rows))})}
+                      onChange={e=>updateMapCfg(area,{rows:Math.max(3,Math.min(24,+e.target.value||cfg.rows))})}
                       style={{width:52,padding:'4px 6px',borderRadius:6,border:'1px solid '+T.border,
                         background:T.input,color:T.text,fontSize:12,textAlign:'center',outline:'none'}}/>
                   </div>
                   <div style={{display:'flex',alignItems:'center',gap:5}}>
                     <span style={{fontSize:11,color:T.sub}}>Cell</span>
                     {[['XS',48],['S',60],['M',76],['L',92],['XL',112]].map(([lbl,s])=>(
-                      <button key={lbl} onClick={()=>updateMapCfg(mapTab,{size:s})}
+                      <button key={lbl} onClick={()=>updateMapCfg(area,{size:s})}
                         style={{padding:'3px 8px',borderRadius:6,border:'1px solid '+T.border,
                           cursor:'pointer',fontSize:11,
                           background:cfg.size===s?T.accent:T.input,
@@ -501,12 +513,12 @@ export function Catalogue(){
                     ))}
                   </div>
                   <div style={{display:'flex',gap:8,marginLeft:'auto'}}>
-                    {isCustom&&<button onClick={()=>resetMapCfg(mapTab)}
+                    {isCustom&&<button onClick={()=>resetMapCfg(area)}
                       style={{padding:'3px 10px',borderRadius:20,border:'1px solid '+T.border,
                         cursor:'pointer',fontSize:11,background:T.input,color:T.sub}}>
                       &#x21BA; Reset Size
                     </button>}
-                    <button onClick={()=>resetMapLayout(mapTab)}
+                    <button onClick={()=>resetMapLayout(area)}
                       title="Clears saved plant placements, zones and labels for this map, restoring the built-in defaults"
                       style={{padding:'3px 10px',borderRadius:20,border:'1px solid '+T.border,
                         cursor:'pointer',fontSize:11,background:T.input,color:'#ef4444'}}>
@@ -517,74 +529,65 @@ export function Catalogue(){
               );
             })()}
             {!mapFull&&<p style={{color:T.sub,fontSize:13,marginBottom:12}}>
-              Drag plants onto the grid &bull; Double-click to remove (in &#x1F331; Place mode) &bull; &#x270F;&#xFE0F; rename map
+              Drag plants onto the grid &bull; Double-click to remove (in &#x1F331; Place mode) &bull; &#x270F;&#xFE0F; rename zone
             </p>}
-            {mapTab==='garden'&&(()=>{const c=getMapCfg('garden');return<MapGrid storageKey="garden-map" cols={c.cols} rows={c.rows} size={c.size} zones={null} defaultFilter="outdoor" allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
-            {mapTab==='courtyard'&&(()=>{const c=getMapCfg('courtyard');return<MapGrid storageKey="courtyard-map" cols={c.cols} rows={c.rows} size={c.size} zones={COURTYARD_ZONES} defaultFilter="outdoor" defaultPos={COURTYARD_DEFAULT} defaultText={COURTYARD_TEXT} allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
-            {mapTab==='greenhouse'&&(()=>{const c=getMapCfg('greenhouse');return<MapGrid storageKey="greenhouse-map" cols={c.cols} rows={c.rows} size={c.size} zones={GREENHOUSE_ZONES} defaultFilter="hydro" defaultPos={GREENHOUSE_DEFAULT} allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
-            {mapTab==='indoor'&&(()=>{const c=getMapCfg('indoor');return<MapGrid storageKey="indoor-map" cols={c.cols} rows={c.rows} size={c.size} zones={INDOOR_ZONES} defaultFilter="indoor" allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>;})()}
+            <MapGrid storageKey={area+'-map'} cols={mapCfg.cols} rows={mapCfg.rows} size={mapCfg.size}
+              zones={currentArea.zones} defaultFilter={currentArea.defaultFilter}
+              defaultPos={currentArea.defaultPos} defaultText={currentArea.defaultText}
+              allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}/>
           </div>
         )}
 
-        {/* ── Irrigation System View ── */}
-        {view==='irrigation'&&(
+        {/* ── Zone: Irrigation ── */}
+        {area!=='overview'&&areaTab==='irrigation'&&(
           <div style={{paddingTop:28}}>
-            <IrrigationMap allPlants={allPlants}/>
+            <IrrigationView area={currentArea} allPlants={allPlants}/>
           </div>
         )}
 
-        {/* ── Care Schedule View ── */}
-        {view==='calendar'&&(
+        {/* ── Zone: Care ── */}
+        {area!=='overview'&&areaTab==='care'&&(
           <div style={{paddingTop:28}}>
-            <h2 style={{fontSize:20,fontWeight:700,color:T.text,marginBottom:6}}>&#x1F4C5; Care Schedule</h2>
-            <p style={{color:T.sub,fontSize:13,marginBottom:24}}>Watering calendar, seasonal tasks, and sowing guide.</p>
-            <WateringCalendarView allPlants={allPlants} careLog={careLog}/>
-            <SeasonalTasksPanel allPlants={allPlants}/>
-            <h3 style={{fontSize:16,fontWeight:700,color:T.text,margin:'0 0 12px'}}>&#x1F331; Sowing Calendar</h3>
-            <p style={{color:T.sub,fontSize:13,marginBottom:16}}>When to sow, propagate, or plant out each species across the year.</p>
-            <SowingCalendar allPlants={allPlants}/>
+            <h2 style={{fontSize:20,fontWeight:700,color:T.text,marginBottom:6}}>&#x1F4C5; {getAreaName(area)} Care Schedule</h2>
+            <p style={{color:T.sub,fontSize:13,marginBottom:24}}>Watering calendar, seasonal tasks, and sowing guide for this zone.</p>
+            {zonePlants.length===0?(
+              <div style={{padding:24,textAlign:'center',color:T.sub,fontSize:13,
+                background:T.surface,borderRadius:10,border:'1px dashed '+T.border}}>
+                No plants placed in this zone yet — place some on the Map tab first.
+              </div>
+            ):(<>
+              <WateringCalendarView allPlants={zonePlants} careLog={careLog}/>
+              <SeasonalTasksPanel allPlants={zonePlants}/>
+              <h3 style={{fontSize:16,fontWeight:700,color:T.text,margin:'0 0 12px'}}>&#x1F331; Sowing Calendar</h3>
+              <p style={{color:T.sub,fontSize:13,marginBottom:16}}>When to sow, propagate, or plant out each species in this zone.</p>
+              <SowingCalendar allPlants={zonePlants}/>
+            </>)}
           </div>
         )}
 
-        {/* ── Dashboard View ── */}
-        {view==='dashboard'&&(
+        {/* ── Zone: Pests ── */}
+        {area!=='overview'&&areaTab==='pests'&&(
           <div style={{paddingTop:28}}>
-            <h2 style={{fontSize:20,fontWeight:700,color:T.text,marginBottom:6}}>&#x1F4CA; Care Dashboard</h2>
-            <p style={{color:T.sub,fontSize:13,marginBottom:16}}>Track watering, feeding, repotting, and recent care activity.</p>
-            <WeatherWidget/>
-            <DashboardView allPlants={allPlants} careLog={careLog} onLog={logCare} onSelect={setSelected}/>
-            <BackupRestorePanel/>
+            <PestsView plants={zonePlants} pestLog={pestLog} onResolve={resolvePest} onSelect={setSelected}/>
           </div>
-        )}
-
-        {/* ── Wishlist View ── */}
-        {view==='wishlist'&&(
-          <WishlistView wishlist={wishlist} onAdd={addWish} onRemove={removeWish}/>
         )}
       </div>
 
-      {/* ── Mobile Bottom Navigation ── */}
-      {M&&(
+      {/* ── Mobile Bottom Navigation — feature tabs within a zone ── */}
+      {M&&area!=='overview'&&(
         <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:200,
           background:T.card,borderTop:'1px solid '+T.border,
           display:'flex',alignItems:'stretch',
           paddingBottom:'env(safe-area-inset-bottom)'}}>
-          {[
-            ['catalogue','&#x1F33F;','Plants',null],
-            ['map','&#x1F5FA;','Maps',null],
-            ['irrigation','&#x1F4A7;','Irrigate',null],
-            ['calendar','&#x1F4C5;','Schedule',null],
-            ['dashboard','&#x1F4CA;','Care',attention||null],
-            ['wishlist','&#x1F331;','Wishlist',wishlist.length||null],
-          ].map(([k,icon,lbl,badge])=>(
-            <button key={k} onClick={()=>setView(k)} style={{
+          {FEATURE_TABS.map(([k,icon,lbl,badge])=>(
+            <button key={k} onClick={()=>setAreaTab(k)} style={{
               flex:1,padding:'9px 2px 7px',border:'none',background:'transparent',
               cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:1,
-              color:view===k?T.accent:T.sub,position:'relative'}}>
+              color:areaTab===k?T.accent:T.sub,position:'relative'}}>
               <span style={{fontSize:20,lineHeight:1}} dangerouslySetInnerHTML={{__html:icon}}/>
-              <span style={{fontSize:9,fontWeight:view===k?700:400}}>{lbl}</span>
+              <span style={{fontSize:9,fontWeight:areaTab===k?700:400}}>{lbl}</span>
               {badge>0&&(
-                <span style={{position:'absolute',top:5,right:'calc(50% - 18px)',background:k==='filter'?T.accent:'#ef4444',
+                <span style={{position:'absolute',top:5,right:'calc(50% - 18px)',background:'#ef4444',
                   color:'#fff',borderRadius:20,padding:'0px 5px',fontSize:9,fontWeight:700,minWidth:16,textAlign:'center'}}>{badge}</span>
               )}
             </button>
@@ -603,6 +606,8 @@ export function Catalogue(){
       {bulkWaterModal&&<BulkWaterModal
         plants={allPlants.filter(p=>getUrgency(p,careLog,'watered').level==='overdue')}
         onConfirm={bulkWater} onClose={()=>setBulkWaterModal(false)}/>}
+      {showFilters&&<FiltersDrawer allTags={allTags} tags={tags} onToggle={toggleTag}
+        onClear={()=>setTags([])} onClose={()=>setShowFilters(false)}/>}
     </ThemeCtx.Provider>
   );
 }

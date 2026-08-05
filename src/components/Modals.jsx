@@ -1,5 +1,5 @@
 import React from 'react';
-import { COMPANIONS } from '../data/plants.js';
+import { COMPANIONS, TAG_C } from '../data/plants.js';
 import { ThemeCtx, fmtDate, repotApplicable } from '../utils.js';
 
 export function PhotoLightbox({src, onClose}){
@@ -239,6 +239,40 @@ export function BulkWaterModal({plants, onConfirm, onClose}){
             color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:600,cursor:'pointer'}}>
             ✓ Water {plants.length} Plants
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function FiltersDrawer({allTags, tags, onToggle, onClear, onClose}){
+  const T=React.useContext(ThemeCtx);
+  return (
+    <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(0,0,0,0.72)',
+      display:'flex',alignItems:'flex-end',justifyContent:'center',padding:0}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:T.card,borderRadius:'16px 16px 0 0',
+        padding:20,maxWidth:640,width:'100%',maxHeight:'75vh',overflowY:'auto',
+        boxShadow:'0 -8px 40px rgba(0,0,0,0.5)'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+          <div style={{fontWeight:700,fontSize:16,color:T.text}}>&#x1F50D; Filters {tags.length>0&&`(${tags.length})`}</div>
+          <div style={{display:'flex',gap:10,alignItems:'center'}}>
+            {tags.length>0&&<button onClick={onClear} style={{background:'none',border:'none',
+              color:'#ef4444',fontSize:12,fontWeight:600,cursor:'pointer'}}>Clear all</button>}
+            <button onClick={onClose} style={{background:'none',border:'none',color:T.sub,
+              fontSize:20,cursor:'pointer'}}>&#x2715;</button>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+          {allTags.map(t=>{
+            const cfg=TAG_C[t]||{}, on=tags.includes(t);
+            return <button key={t} onClick={()=>onToggle(t)} style={{
+              padding:'6px 12px',borderRadius:20,
+              border:'1px solid '+(on?T.accent:T.border),
+              background:on?(cfg.bg||T.accent):(cfg.bg||T.tag),
+              color:on?'#fff':(cfg.text||T.tagText),
+              cursor:'pointer',fontSize:12,fontWeight:on?700:400,
+            }}>{t}</button>;
+          })}
         </div>
       </div>
     </div>

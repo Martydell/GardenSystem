@@ -2,10 +2,11 @@
 // Headless-Chrome regression check for Marty's Plant Haven.
 // Usage: node scripts/smoke-test.mjs [url]   (defaults to http://localhost:8743/)
 //
-// Loads the app, exercises the Maps/Courtyard/Irrigation views, and fails loudly
-// (non-zero exit code) on any console error, uncaught page error, or failed
-// same-origin request. Run this against a local server before every deploy,
-// and again against the live URL after deploying.
+// Loads the app, exercises the zone-based nav (Overview + a zone's Plants/Map/
+// Irrigation/Care/Pests tabs), and fails loudly (non-zero exit code) on any
+// console error, uncaught page error, or failed same-origin request. Run this
+// against a local server before every deploy, and again against the live URL
+// after deploying.
 
 import puppeteer from 'puppeteer-core';
 
@@ -32,6 +33,7 @@ async function main() {
 
   const browser = await puppeteer.launch({ executablePath: CHROME_PATH, headless: 'new' });
   const page = await browser.newPage();
+  await page.setViewport({ width: 1280, height: 900 });
 
   page.on('pageerror', err => errors.push(`pageerror: ${err.message}`));
   page.on('console', msg => {
@@ -50,29 +52,50 @@ async function main() {
   await new Promise(r => setTimeout(r, 3000));
 
   const rootLen1 = await page.evaluate(() => document.getElementById('root')?.innerHTML?.length || 0);
-  console.log(`  catalogue view rendered, ${rootLen1} chars`);
+  console.log(`  Overview rendered, ${rootLen1} chars`);
 
-  // Maps -> Courtyard
-  await clickByText(page, 'button, a, div[role="button"], nav *', 'Maps');
-  await new Promise(r => setTimeout(r, 1200));
+  // Zone: Courtyard -> Map
   await clickByText(page, 'button', 'Courtyard');
-  await new Promise(r => setTimeout(r, 1500));
+  await new Promise(r => setTimeout(r, 1000));
+  await clickByText(page, 'button', 'Map');
+  await new Promise(r => setTimeout(r, 1200));
   const rootLen2 = await page.evaluate(() => document.getElementById('root')?.innerHTML?.length || 0);
   console.log(`  courtyard map rendered, ${rootLen2} chars`);
 
-  // Irrigation System (top-level tab)
+  // Zone: Courtyard -> Irrigation
   await clickByText(page, 'button', 'Irrigation');
   await new Promise(r => setTimeout(r, 1200));
   const irrigationText = await page.evaluate(() => document.getElementById('root')?.innerText || '');
-  const irrigationOk = irrigationText.includes('Irrigation System') && irrigationText.includes('Courtyard') && irrigationText.includes('Back Garden');
+  const irrigationOk = irrigationText.includes('Irrigation') && irrigationText.includes('Mark drip install status');
   console.log(`  irrigation view rendered: ${irrigationOk}`);
 
-  // Care Schedule
-  await clickByText(page, 'button', 'Care Schedule');
+  // Zone: Courtyard -> Care
+  await clickByText(page, 'button', 'Care');
   await new Promise(r => setTimeout(r, 1200));
-  const scheduleText = await page.evaluate(() => document.getElementById('root')?.innerText || '');
-  const scheduleOk = scheduleText.includes('Care Schedule');
-  console.log(`  schedule view rendered: ${scheduleOk}`);
+  const careText = await page.evaluate(() => document.getElementById('root')?.innerText || '');
+  const careOk = careText.includes('Care Schedule');
+  console.log(`  care schedule rendered: ${careOk}`);
+
+  // Zone: Courtyard -> Pests
+  await clickByText(page, 'button', 'Pests');
+  await new Promise(r => setTimeout(r, 1000));
+  const pestsText = await page.evaluate(() => document.getElementById('root')?.innerText || '');
+  const pestsOk = pestsText.includes('Pests');
+  console.log(`  pests view rendered: ${pestsOk}`);
+
+  // Zone: Courtyard -> Plants
+  await clickByText(page, 'button', 'Plants');
+  await new Promise(r => setTimeout(r, 1000));
+  const plantsText = await page.evaluate(() => document.getElementById('root')?.innerText || '');
+  const plantsOk = plantsText.includes('Filters');
+  console.log(`  zone plants tab rendered: ${plantsOk}`);
+
+  // Back to Overview
+  await clickByText(page, 'button', 'Overview');
+  await new Promise(r => setTimeout(r, 1200));
+  const overviewText = await page.evaluate(() => document.getElementById('root')?.innerText || '');
+  const overviewOk = overviewText.includes('Care Dashboard') && overviewText.includes('Wishlist') && overviewText.includes('Browse All Plants');
+  console.log(`  overview (dashboard/wishlist/browse) rendered: ${overviewOk}`);
 
   await browser.close();
 
@@ -80,8 +103,9 @@ async function main() {
   console.log('Errors:', errors.length ? errors.join('\n  ') : '(none)');
   console.log('Failed same-origin requests:', failedRequests.length ? failedRequests.join('\n  ') : '(none)');
 
-  const rootsOk = rootLen1 > 10000 && rootLen2 > 10000;
-  const pass = errors.length === 0 && failedRequests.length === 0 && rootsOk && irrigationOk && scheduleOk;
+  const rootsOk = rootLen1 > 5000 && rootLen2 > 5000;
+  const pass = errors.length === 0 && failedRequests.length === 0 && rootsOk
+    && irrigationOk && careOk && pestsOk && plantsOk && overviewOk;
 
   if (!pass) {
     console.error('\nFAIL');

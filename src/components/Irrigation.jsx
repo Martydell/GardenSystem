@@ -1,5 +1,4 @@
 import React from 'react';
-import { COURTYARD_DEFAULT } from '../data/zones.js';
 import { ThemeCtx, WATER_LEVEL_COLORS, waterLevel } from '../utils.js';
 
 function loadInstalled(key){
@@ -99,19 +98,18 @@ export function IrrigationSection({title,storageKey,fallback,cfg,allPlants,editM
   );
 }
 
-export function IrrigationMap({allPlants}){
+export function IrrigationView({area, allPlants}){
   const T=React.useContext(ThemeCtx);
   const [editMode,setEditMode]=React.useState(false);
-  const MAP_BASE_SIZE={courtyard:{cols:14,rows:8,size:76},garden:{cols:14,rows:9,size:76}};
-  function getCfg(k){
+  function getCfg(){
     let ms={};
     try{ms=JSON.parse(localStorage.getItem('map-settings')||'{}');}catch{}
-    return {...MAP_BASE_SIZE[k],...(ms[k]||{})};
+    return {cols:area.cols,rows:area.rows,size:area.size,...(ms[area.key]||{})};
   }
   return (
     <div>
       <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:12,flexWrap:'wrap'}}>
-        <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:0}}>&#x1F4A7; Irrigation System</h2>
+        <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:0}}>&#x1F4A7; {area.label} Irrigation</h2>
         <div style={{display:'flex',gap:14,alignItems:'center',marginLeft:'auto',flexWrap:'wrap'}}>
           {['low','med','high'].map(k=>{
             const c=WATER_LEVEL_COLORS[k];
@@ -134,12 +132,11 @@ export function IrrigationMap({allPlants}){
       <p style={{color:T.sub,fontSize:13,marginBottom:20}}>
         Colour reflects each plant's watering need, worked out automatically from its care info
         (Low / Medium / High). A shared pot is coloured by the highest need among its plants.
-        This mirrors whatever is currently placed on the Courtyard and Back Garden maps — change
-        placements there and this view updates to match.
+        This mirrors whatever is currently placed on the {area.label} map — change placements
+        there and this view updates to match.
         {editMode&&<><br/><strong style={{color:'#22c55e'}}>Edit mode:</strong> tap any pot or empty cell below to mark whether its drip line is physically connected yet.</>}
       </p>
-      <IrrigationSection title="Courtyard" storageKey="courtyard-map" fallback={COURTYARD_DEFAULT} cfg={getCfg('courtyard')} allPlants={allPlants} editMode={editMode}/>
-      <IrrigationSection title="Back Garden" storageKey="garden-map" fallback={null} cfg={getCfg('garden')} allPlants={allPlants} editMode={editMode}/>
+      <IrrigationSection title={area.label} storageKey={area.key+'-map'} fallback={area.defaultPos||null} cfg={getCfg()} allPlants={allPlants} editMode={editMode}/>
     </div>
   );
 }
