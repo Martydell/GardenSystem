@@ -80,6 +80,24 @@ export function Catalogue(){
     try{ localStorage.setItem(targetKey+'-map',JSON.stringify(tpos)); }catch{}
     setDataVersion(v=>v+1);
   }
+  const [selectedIds, setSelectedIds] = React.useState(()=>new Set());
+  const [masterZone, setMasterZone] = React.useState('');
+  const [masterMoved, setMasterMoved] = React.useState(false);
+  function toggleSelect(id){
+    setSelectedIds(prev=>{
+      const next=new Set(prev), key=String(id);
+      next.has(key)?next.delete(key):next.add(key);
+      return next;
+    });
+  }
+  function saveMasterMove(){
+    if(!masterZone||!selectedIds.size)return;
+    allPlants.filter(p=>selectedIds.has(String(p.id))).forEach(p=>reassignPlant(p,masterZone));
+    setSelectedIds(new Set());
+    setMasterZone('');
+    setMasterMoved(true);
+    setTimeout(()=>setMasterMoved(false),1600);
+  }
   const [mapSettings, setMapSettings] = React.useState(()=>{
     try{return JSON.parse(localStorage.getItem('map-settings')||'{}');}catch{return {};}
   });
@@ -267,12 +285,26 @@ export function Catalogue(){
             <React.Fragment key={t}>
               {sectionHdr(HDR_BY_TYPE[t],arr.length)}
               <div key={keyPrefix+t+search+tags.join()} className="cards-grid" style={{display:'flex',flexWrap:'wrap',gap:M?8:16,marginBottom:8}}>
-                {arr.map((p,i)=>(
-                  <Card key={p.id} plant={p} onSelect={setSelected} careLog={careLog} onLog={logCare}
-                    onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}
-                    onDragStart={overviewMode?handleCardDragStart:undefined}
-                    onReassign={reassignPlant} zoneOptions={AREAS}/>
-                ))}
+                {arr.map((p,i)=>{
+                  const pid=String(p.id), isSel=selectedIds.has(pid);
+                  return (
+                    <div key={p.id} style={{position:'relative'}}>
+                      <button onClick={e=>{e.stopPropagation();toggleSelect(p.id);}}
+                        title={isSel?'Deselect':'Select for bulk move'}
+                        style={{position:'absolute',top:-6,right:-6,zIndex:6,width:24,height:24,borderRadius:'50%',
+                          border:'2px solid '+(isSel?'#22c55e':'#fff'),
+                          background:isSel?'#22c55e':'rgba(0,0,0,0.4)',
+                          color:'#fff',fontSize:13,fontWeight:900,cursor:'pointer',display:'flex',
+                          alignItems:'center',justifyContent:'center',boxShadow:'0 1px 4px rgba(0,0,0,0.5)'}}>
+                        {isSel?'✓':''}
+                      </button>
+                      <Card plant={p} onSelect={setSelected} careLog={careLog} onLog={logCare}
+                        onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}
+                        onDragStart={overviewMode?handleCardDragStart:undefined}
+                        onReassign={reassignPlant} zoneOptions={AREAS}/>
+                    </div>
+                  );
+                })}
               </div>
             </React.Fragment>
           );
@@ -384,6 +416,30 @@ export function Catalogue(){
     </div>
   );
 
+  const selectionBar = selectedIds.size>0 && (
+    <div style={{position:'sticky',top:M?45:96,zIndex:89,background:T.accent,color:'#fff',
+      borderRadius:10,padding:'8px 12px',marginBottom:16,display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+      <span style={{fontWeight:700,fontSize:13,flexShrink:0}}>&#x2611;&#xFE0F; {selectedIds.size} selected</span>
+      <select value={masterZone} onChange={e=>setMasterZone(e.target.value)}
+        style={{flex:'1 1 140px',minWidth:0,width:0,padding:'6px 8px',borderRadius:6,border:'none',
+          fontSize:13,color:T.text}}>
+        <option value="">Move to zone&hellip;</option>
+        {AREAS.map(a=><option key={a.key} value={a.key}>{a.label}</option>)}
+      </select>
+      <button onClick={saveMasterMove} disabled={!masterZone} style={{flexShrink:0,
+        padding:'6px 14px',borderRadius:6,border:'none',fontWeight:700,fontSize:13,
+        background:masterMoved?'#22c55e':(masterZone?'#fff':'rgba(255,255,255,0.3)'),
+        color:masterMoved?'#fff':(masterZone?T.accent:'rgba(255,255,255,0.7)'),
+        cursor:masterZone?'pointer':'default'}}>
+        {masterMoved?'✓ Moved':'Save to Zone'}
+      </button>
+      <button onClick={()=>setSelectedIds(new Set())} style={{flexShrink:0,padding:'6px 10px',borderRadius:6,
+        border:'1px solid rgba(255,255,255,0.5)',background:'transparent',color:'#fff',fontSize:12,cursor:'pointer'}}>
+        Clear
+      </button>
+    </div>
+  );
+
   const mapCfg = currentArea ? getMapCfg(area) : null;
 
   return (
@@ -471,6 +527,21 @@ export function Catalogue(){
         {/* ── Overview ── */}
         {group==='overview'&&(
           <div style={{paddingTop:20}}>
+            <div style={{background:'linear-gradient(135deg, rgba(74,124,63,0.12), rgba(74,124,63,0.03))',
+              border:'1px solid '+T.border,borderRadius:12,padding:'16px 18px',marginBottom:20}}>
+              <h2 style={{fontSize:18,fontWeight:700,color:T.text,margin:'0 0 6px',display:'flex',alignItems:'center',gap:8}}>
+                &#x1F331; Welcome to Marty's Plant Haven
+              </h2>
+              <p style={{color:T.sub,fontSize:13,lineHeight:1.6,margin:0}}>
+                A home for tracking every plant across the house, garden and greenhouse in one place —
+                {' '}{allPlants.length} plants and counting. Browse the full catalogue, keep on top of watering
+                and feeding schedules, map out exactly where everything lives, log pests and issues as they
+                come up, and keep a wishlist of what's next. Use the <strong style={{color:T.text}}>Indoor</strong>,{' '}
+                <strong style={{color:T.text}}>Outdoor</strong> and <strong style={{color:T.text}}>Green House</strong> tabs
+                above to explore each zone, or stay here on Overview for the big picture.
+              </p>
+            </div>
+
             <WeatherWidget/>
 
             <div style={{background:T.card,border:'1px solid '+T.border,borderRadius:10,padding:'10px 12px',margin:'8px 0 24px'}}>
@@ -485,6 +556,7 @@ export function Catalogue(){
 
             <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'8px 0 6px'}}>&#x1F50D; All Plants</h2>
             {searchBar}
+            {selectionBar}
             {attention>0&&(
               <div style={{marginBottom:8,display:'flex',justifyContent:'flex-end'}}>
                 <button onClick={()=>setBulkWaterModal(true)} style={{
@@ -510,6 +582,7 @@ export function Catalogue(){
         {area&&areaTab==='plants'&&(
           <div style={{paddingTop:20}}>
             {searchBar}
+            {selectionBar}
             {renderPlantSections(zonePlants,area+'-')}
           </div>
         )}
