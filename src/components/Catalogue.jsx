@@ -1,5 +1,5 @@
 import React from 'react';
-import { BackupRestorePanel, DashboardView, SeasonalTasksPanel, SowingCalendar, WateringCalendarView } from './Calendars.jsx';
+import { BackupRestorePanel, CareSummaryPanel, DashboardView, SeasonalTasksPanel, SowingCalendar, WateringCalendarView } from './Calendars.jsx';
 import { DetailPanel } from './DetailPanel.jsx';
 import { IrrigationView } from './Irrigation.jsx';
 import { MapGrid } from './MapGrid.jsx';
@@ -631,6 +631,7 @@ export function Catalogue(){
 
             <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'32px 0 6px'}}>&#x1F4CA; Care Dashboard</h2>
             <p style={{color:T.sub,fontSize:13,marginBottom:16}}>Track watering, feeding, repotting, and recent care activity across every zone.</p>
+            <CareSummaryPanel allPlants={careActivePlants} careLog={careLog} pestLog={pestLog} onSelect={setSelected}/>
             <DashboardView allPlants={careActivePlants} careLog={careLog} onLog={logCare} onSelect={setSelected}/>
             <BackupRestorePanel/>
 

@@ -95,16 +95,38 @@ export function repotInterval(plant){
   return 730;
 }
 
+// No per-plant pruning data exists yet — flat 6-month default, only for plants that
+// realistically need shaping (climbers/shrubs/architectural specimens).
+export function pruneApplicable(plant){
+  const tags=plant.tags||[];
+  return tags.includes('Climber')||tags.includes('Shrub')||tags.includes('Architectural');
+}
+export function pruneInterval(){ return 180; }
+
 export function getUrgency(plant, careLog, type='watered'){
   const ts = careLog[String(plant.id)+'-'+type];
   if(!ts) return {level:'unset', days:null};
   const days = (Date.now()-ts)/86400000;
   const iv = type==='watered' ? waterInterval(plant) :
              type==='fed'     ? feedInterval(plant) :
+             type==='pruned'  ? pruneInterval(plant) :
                                 repotInterval(plant);
   if(days>=iv)        return {level:'overdue', days:Math.round(days)};
   if(days>=iv*0.65)   return {level:'soon',    days:Math.round(days)};
   return                     {level:'ok',      days:Math.round(days)};
+}
+
+// Days until a care action is next due (negative = overdue). null if never logged,
+// matching getUrgency's 'unset' convention — never-logged plants aren't nagged.
+export function daysUntilDue(plant, careLog, type){
+  const ts = careLog[String(plant.id)+'-'+type];
+  if(!ts) return null;
+  const daysSince = (Date.now()-ts)/86400000;
+  const iv = type==='watered' ? waterInterval(plant) :
+             type==='fed'     ? feedInterval(plant) :
+             type==='pruned'  ? pruneInterval(plant) :
+                                repotInterval(plant);
+  return iv - daysSince;
 }
 
 export const URG_COLOR = { overdue:'#ef4444', soon:'#f59e0b', ok:'#22c55e', unset:'#6b7280' };

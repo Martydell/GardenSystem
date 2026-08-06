@@ -1,5 +1,82 @@
 import React from 'react';
-import { ThemeCtx, WATER_LEVEL_COLORS, waterLevel } from '../utils.js';
+import { ThemeCtx, WATER_LEVEL_COLORS, fmtDate, waterLevel } from '../utils.js';
+
+function HydroReservoirPanel({area}){
+  const T=React.useContext(ThemeCtx);
+  const waterKey=area.key+'-water-change';
+  const nutrientKey=area.key+'-nutrient-ml-per-l';
+  const [wc,setWc]=React.useState(()=>{
+    try{ return JSON.parse(localStorage.getItem(waterKey)||'null')||{lastChanged:null,intervalDays:14}; }
+    catch{ return {lastChanged:null,intervalDays:14}; }
+  });
+  const [mlPerL,setMlPerL]=React.useState(()=>{
+    try{ const v=JSON.parse(localStorage.getItem(nutrientKey)||'null'); return v!=null?v:5; }
+    catch{ return 5; }
+  });
+  function saveWc(next){
+    setWc(next);
+    try{localStorage.setItem(waterKey,JSON.stringify(next));}catch{}
+  }
+  function saveMl(v){
+    setMlPerL(v);
+    try{localStorage.setItem(nutrientKey,JSON.stringify(v));}catch{}
+  }
+
+  const daysSince = wc.lastChanged ? (Date.now()-wc.lastChanged)/86400000 : null;
+  const daysLeft = daysSince!=null ? wc.intervalDays-daysSince : null;
+  const level = daysLeft==null?'unset':daysLeft<=0?'overdue':daysLeft<=wc.intervalDays*0.35?'soon':'ok';
+  const levelColor = {overdue:'#ef4444',soon:'#f59e0b',ok:'#22c55e',unset:'#6b7280'}[level];
+
+  return (
+    <div style={{background:T.card,border:'1px solid '+T.border,borderRadius:12,padding:'14px 16px',marginBottom:20}}>
+      <h3 style={{fontSize:16,fontWeight:700,color:T.text,margin:'0 0 14px'}}>&#x1F9EA; Hydroponic Reservoir</h3>
+
+      <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap',marginBottom:16,
+        paddingBottom:16,borderBottom:'1px solid '+T.border}}>
+        <div style={{flex:'1 1 200px'}}>
+          <div style={{fontSize:11,color:T.sub,marginBottom:2}}>Next water change</div>
+          <div style={{fontSize:14,fontWeight:700,color:levelColor}}>
+            {wc.lastChanged
+              ? (daysLeft<=0 ? `Overdue by ${Math.abs(Math.round(daysLeft))}d` : `Due in ${Math.round(daysLeft)}d`)
+              : 'Not logged yet'}
+          </div>
+          {wc.lastChanged&&<div style={{fontSize:11,color:T.sub}}>Last changed {fmtDate(wc.lastChanged)}</div>}
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
+          <span style={{fontSize:11,color:T.sub}}>Every</span>
+          <input type="number" min={1} value={wc.intervalDays}
+            onChange={e=>saveWc({...wc,intervalDays:Math.max(1,+e.target.value||wc.intervalDays)})}
+            style={{width:52,padding:'4px 6px',borderRadius:6,border:'1px solid '+T.border,
+              background:T.input,color:T.text,fontSize:12,textAlign:'center'}}/>
+          <span style={{fontSize:11,color:T.sub}}>days</span>
+        </div>
+        <button onClick={()=>saveWc({...wc,lastChanged:Date.now()})} style={{padding:'6px 14px',
+          borderRadius:8,border:'none',background:T.green,color:'#fff',fontSize:12,
+          fontWeight:600,cursor:'pointer'}}>
+          &#x2713; Changed today
+        </button>
+      </div>
+
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,flexWrap:'wrap'}}>
+        <span style={{fontSize:12,color:T.sub}}>Nutrient dose</span>
+        <input type="number" min={0} step={0.1} value={mlPerL}
+          onChange={e=>saveMl(+e.target.value||0)}
+          style={{width:64,padding:'4px 6px',borderRadius:6,border:'1px solid '+T.border,
+            background:T.input,color:T.text,fontSize:12,textAlign:'center'}}/>
+        <span style={{fontSize:12,color:T.sub}}>ml per litre &mdash; set this to match your own nutrient product</span>
+      </div>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        {[1,5,10,25,50].map(l=>(
+          <div key={l} style={{padding:'8px 12px',borderRadius:8,background:T.surface,
+            border:'1px solid '+T.border,textAlign:'center',minWidth:64}}>
+            <div style={{fontSize:11,color:T.sub}}>{l}L</div>
+            <div style={{fontSize:14,fontWeight:700,color:T.text}}>{(mlPerL*l).toFixed(1)}ml</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function loadInstalled(key){
   try{ return new Set(JSON.parse(localStorage.getItem(key)||'[]')); }
@@ -136,6 +213,7 @@ export function IrrigationView({area, allPlants}){
         there and this view updates to match.
         {editMode&&<><br/><strong style={{color:'#22c55e'}}>Edit mode:</strong> tap any pot or empty cell below to mark whether its drip line is physically connected yet.</>}
       </p>
+      {area.defaultFilter==='hydro'&&<HydroReservoirPanel area={area}/>}
       <IrrigationSection title={area.label} storageKey={area.key+'-map'} fallback={area.defaultPos||null} cfg={getCfg()} allPlants={allPlants} editMode={editMode}/>
     </div>
   );

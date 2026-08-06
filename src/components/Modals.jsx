@@ -1,6 +1,6 @@
 import React from 'react';
 import { COMPANIONS, TAG_C } from '../data/plants.js';
-import { ThemeCtx, fmtDate, repotApplicable } from '../utils.js';
+import { ThemeCtx, fmtDate, pruneApplicable, repotApplicable } from '../utils.js';
 
 export function PhotoLightbox({src, onClose}){
   React.useEffect(()=>{
@@ -26,6 +26,7 @@ export function CareActionsBar({plant, careLog, onLog}){
     {type:'watered', label:'Watered', icon:'&#x1F4A7;', always:true},
     {type:'fed',     label:'Fed',     icon:'&#x1F9EA;', always:true},
     {type:'repotted',label:'Repotted',icon:'&#x1FAB4;', always:repotApplicable(plant)},
+    {type:'pruned',  label:'Pruned',  icon:'&#x2702;&#xFE0F;', always:pruneApplicable(plant)},
   ].filter(a=>a.always);
   return (
     <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>

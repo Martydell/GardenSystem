@@ -1,6 +1,100 @@
 import React from 'react';
 import { AttentionCard } from './PlantCards.jsx';
-import { MO_NAMES, ThemeCtx, fmtDate, getUrgency, parseSowMonths, parseWaterFreqDays, plantCategory, repotApplicable, repotSeason, useIsMobile } from '../utils.js';
+import { MO_NAMES, ThemeCtx, daysUntilDue, fmtDate, getUrgency, parseSowMonths, parseWaterFreqDays, plantCategory, pruneApplicable, repotApplicable, repotSeason, useIsMobile } from '../utils.js';
+
+export function CareSummaryPanel({allPlants, careLog, pestLog, onSelect}){
+  const T = React.useContext(ThemeCtx);
+  const [expanded, setExpanded] = React.useState(null);
+  function toggle(id){ setExpanded(e=>e===id?null:id); }
+
+  function bucket(type, gate){
+    const today=[], week=[];
+    allPlants.forEach(p=>{
+      if(gate && !gate(p)) return;
+      const d = daysUntilDue(p, careLog, type);
+      if(d==null) return;
+      if(d<=0) today.push(p);
+      else if(d<=7) week.push(p);
+    });
+    return {today, week};
+  }
+
+  const water = bucket('watered');
+  const feed  = bucket('fed');
+  const prune = bucket('pruned', pruneApplicable);
+  const activePests = (pestLog||[]).filter(e=>!e.resolved);
+  const pestPlantIds = [...new Set(activePests.map(e=>String(e.plantId)))];
+  const pestPlants = allPlants.filter(p=>pestPlantIds.includes(String(p.id)));
+
+  const rows = [
+    {key:'water', label:'Needing Water',      icon:'&#x1F4A7;', color:'#3b82f6', today:water.today, week:water.week},
+    {key:'feed',  label:'Needing Fertilizer', icon:'&#x1F9EA;', color:'#10b981', today:feed.today,  week:feed.week},
+    {key:'prune', label:'Needing Pruning',    icon:'&#x2702;&#xFE0F;', color:'#d97706', today:prune.today, week:prune.week},
+  ];
+
+  const countBtn = (id, count, color) => (
+    <button onClick={()=>count&&toggle(id)} disabled={!count} style={{
+      padding:'6px 12px',borderRadius:8,cursor:count?'pointer':'default',
+      border:'1px solid '+(count?color:T.border),
+      background:expanded===id?color:'transparent',
+      color:expanded===id?'#fff':(count?color:T.sub),
+      fontSize:13,fontWeight:700,minWidth:36}}>
+      {count}
+    </button>
+  );
+
+  const plantChips = (list) => (
+    <div style={{display:'flex',flexWrap:'wrap',gap:6,padding:'10px 0 4px'}}>
+      {list.length===0&&<span style={{fontSize:12,color:T.sub}}>None</span>}
+      {list.map(p=>(
+        <button key={p.id} onClick={()=>onSelect(p)} style={{
+          padding:'4px 10px',borderRadius:20,border:'1px solid '+T.border,
+          background:T.input,color:T.text,fontSize:12,cursor:'pointer'}}>
+          {p.name}
+        </button>
+      ))}
+    </div>
+  );
+
+  return (
+    <div style={{background:T.card,border:'1px solid '+T.border,borderRadius:12,padding:'14px 16px',marginBottom:24}}>
+      <h3 style={{fontSize:16,fontWeight:700,color:T.text,margin:'0 0 12px'}}>&#x1F4CB; Care Summary</h3>
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        {rows.map(r=>(
+          <div key={r.key}>
+            <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+              <span style={{minWidth:170,display:'flex',alignItems:'center',gap:6,color:T.text,fontWeight:600,fontSize:13}}>
+                <span dangerouslySetInnerHTML={{__html:r.icon}}/>{r.label}
+              </span>
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                <span style={{fontSize:11,color:T.sub}}>Today</span>
+                {countBtn(r.key+'-today', r.today.length, r.color)}
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                <span style={{fontSize:11,color:T.sub}}>Next 7 days</span>
+                {countBtn(r.key+'-week', r.week.length, r.color)}
+              </div>
+            </div>
+            {expanded===r.key+'-today'&&plantChips(r.today)}
+            {expanded===r.key+'-week'&&plantChips(r.week)}
+          </div>
+        ))}
+        <div>
+          <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+            <span style={{minWidth:170,display:'flex',alignItems:'center',gap:6,color:T.text,fontWeight:600,fontSize:13}}>
+              &#x1F41B; Pest Control
+            </span>
+            <div style={{display:'flex',alignItems:'center',gap:6}}>
+              <span style={{fontSize:11,color:T.sub}}>Active issues</span>
+              {countBtn('pests', pestPlants.length, '#ef4444')}
+            </div>
+          </div>
+          {expanded==='pests'&&plantChips(pestPlants)}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function CareStreak({careLog, allPlants}){
   const T = React.useContext(ThemeCtx);
