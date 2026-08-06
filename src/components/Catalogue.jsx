@@ -585,8 +585,12 @@ export function Catalogue(){
             <h2 style={{fontSize:18,fontWeight:700,color:T.text,margin:'0 0 4px',display:'flex',alignItems:'center',gap:8}}>
               &#x1F331; Welcome to Marty's Plant Haven
             </h2>
-            <p style={{color:T.sub,fontSize:13,lineHeight:1.5,margin:'0 0 14px'}}>
-              {activePlants.length} plants tracked across every zone — tap a tile to jump straight in.
+            <p style={{color:T.sub,fontSize:13,lineHeight:1.6,margin:'0 0 14px'}}>
+              A home for tracking every plant across the house, garden and greenhouse in one place —
+              {' '}{activePlants.length} plants and counting. Browse the full catalogue, keep on top of watering
+              and feeding schedules, map out exactly where everything lives, log pests and issues as they
+              come up, and keep a wishlist of what's next. Tap a tile below to jump straight into a zone,
+              or stay here on Overview for the big picture.
             </p>
             <div style={{display:'grid',gridTemplateColumns:M?'repeat(3,1fr)':'repeat(3,1fr)',gap:M?8:14,marginBottom:22}}>
               {GROUPS.map(g=>(

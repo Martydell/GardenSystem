@@ -9,7 +9,7 @@ export const GROUPS = [
 
 // Leaf zones — each has a real map (storage key `${key}-map`) and belongs to one group
 export const AREAS = [
-  {key:'hydrostart',    group:'indoor',     label:'Hydroponics Starter',icon:'&#x1F331;', cols:6, rows:4, size:72, zones:null,             defaultPos:HYDROSTART_DEFAULT, defaultFilter:'hydro'},
+  {key:'hydrostart',    group:'indoor',     label:'Hydroponics Starter Kit',icon:'&#x1F331;', cols:6, rows:4, size:72, zones:null,        defaultPos:HYDROSTART_DEFAULT, defaultFilter:'hydro'},
   {key:'terrarium',     group:'indoor',     label:'Terrarium',          icon:'&#x1FAB4;', cols:6, rows:4, size:72, zones:null,             defaultFilter:'indoor'},
   {key:'indoor',        group:'indoor',     label:'Indoor Plants',      icon:'&#x1F3E0;', cols:16,rows:10,size:64, zones:INDOOR_ZONES,     defaultFilter:'indoor'},
 

@@ -4,22 +4,31 @@ import { ThemeCtx, WATER_LEVEL_COLORS, fmtDate, waterLevel } from '../utils.js';
 function HydroReservoirPanel({area}){
   const T=React.useContext(ThemeCtx);
   const waterKey=area.key+'-water-change';
-  const nutrientKey=area.key+'-nutrient-ml-per-l';
+  const nutrientAKey=area.key+'-nutrient-a-ml-per-l';
+  const nutrientBKey=area.key+'-nutrient-b-ml-per-l';
   const [wc,setWc]=React.useState(()=>{
     try{ return JSON.parse(localStorage.getItem(waterKey)||'null')||{lastChanged:null,intervalDays:14}; }
     catch{ return {lastChanged:null,intervalDays:14}; }
   });
-  const [mlPerL,setMlPerL]=React.useState(()=>{
-    try{ const v=JSON.parse(localStorage.getItem(nutrientKey)||'null'); return v!=null?v:5; }
+  const [mlA,setMlA]=React.useState(()=>{
+    try{ const v=JSON.parse(localStorage.getItem(nutrientAKey)||'null'); return v!=null?v:5; }
+    catch{ return 5; }
+  });
+  const [mlB,setMlB]=React.useState(()=>{
+    try{ const v=JSON.parse(localStorage.getItem(nutrientBKey)||'null'); return v!=null?v:5; }
     catch{ return 5; }
   });
   function saveWc(next){
     setWc(next);
     try{localStorage.setItem(waterKey,JSON.stringify(next));}catch{}
   }
-  function saveMl(v){
-    setMlPerL(v);
-    try{localStorage.setItem(nutrientKey,JSON.stringify(v));}catch{}
+  function saveMlA(v){
+    setMlA(v);
+    try{localStorage.setItem(nutrientAKey,JSON.stringify(v));}catch{}
+  }
+  function saveMlB(v){
+    setMlB(v);
+    try{localStorage.setItem(nutrientBKey,JSON.stringify(v));}catch{}
   }
 
   const daysSince = wc.lastChanged ? (Date.now()-wc.lastChanged)/86400000 : null;
@@ -57,23 +66,27 @@ function HydroReservoirPanel({area}){
         </button>
       </div>
 
-      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,flexWrap:'wrap'}}>
-        <span style={{fontSize:12,color:T.sub}}>Nutrient dose</span>
-        <input type="number" min={0} step={0.1} value={mlPerL}
-          onChange={e=>saveMl(+e.target.value||0)}
-          style={{width:64,padding:'4px 6px',borderRadius:6,border:'1px solid '+T.border,
-            background:T.input,color:T.text,fontSize:12,textAlign:'center'}}/>
-        <span style={{fontSize:12,color:T.sub}}>ml per litre &mdash; set this to match your own nutrient product</span>
-      </div>
-      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        {[1,5,10,25,50].map(l=>(
-          <div key={l} style={{padding:'8px 12px',borderRadius:8,background:T.surface,
-            border:'1px solid '+T.border,textAlign:'center',minWidth:64}}>
-            <div style={{fontSize:11,color:T.sub}}>{l}L</div>
-            <div style={{fontSize:14,fontWeight:700,color:T.text}}>{(mlPerL*l).toFixed(1)}ml</div>
+      {[['Nutrient A',mlA,saveMlA],['Nutrient B',mlB,saveMlB]].map(([label,val,save],i)=>(
+        <div key={label} style={{marginBottom:i===0?14:0}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,flexWrap:'wrap'}}>
+            <span style={{fontSize:12,fontWeight:600,color:T.text,minWidth:76}}>{label}</span>
+            <input type="number" min={0} step={0.1} value={val}
+              onChange={e=>save(+e.target.value||0)}
+              style={{width:64,padding:'4px 6px',borderRadius:6,border:'1px solid '+T.border,
+                background:T.input,color:T.text,fontSize:12,textAlign:'center'}}/>
+            <span style={{fontSize:12,color:T.sub}}>ml per litre &mdash; set this to match your own nutrient product</span>
           </div>
-        ))}
-      </div>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+            {[1,5,10,25,50].map(l=>(
+              <div key={l} style={{padding:'8px 12px',borderRadius:8,background:T.surface,
+                border:'1px solid '+T.border,textAlign:'center',minWidth:64}}>
+                <div style={{fontSize:11,color:T.sub}}>{l}L</div>
+                <div style={{fontSize:14,fontWeight:700,color:T.text}}>{(val*l).toFixed(1)}ml</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
