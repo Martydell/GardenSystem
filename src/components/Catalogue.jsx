@@ -47,29 +47,17 @@ export function Catalogue(){
     e.dataTransfer.effectAllowed='move';
   }
   const [dataVersion, setDataVersion] = React.useState(0);
+  // Adds a plant to a zone without removing it from any zone it's already placed in — the
+  // same plant (e.g. a herb grown in more than one spot) can live in as many zones as needed.
   function reassignPlant(plant, targetKey){
     const pid = String(plant.id);
-    AREAS.forEach(a=>{
-      let pos=null;
-      try{ pos = JSON.parse(localStorage.getItem(a.key+'-map')||'null'); }catch{}
-      if(!pos) pos = a.defaultPos||null;
-      if(!pos || !Object.values(pos).some(v=>String(v).split(',').includes(pid))) return;
-      const next={};
-      let changed=false;
-      Object.entries(pos).forEach(([cell,val])=>{
-        const ids=String(val).split(',').filter(Boolean);
-        if(ids.includes(pid)){
-          changed=true;
-          const filtered=ids.filter(x=>x!==pid);
-          if(filtered.length) next[cell]=filtered.join(',');
-        } else next[cell]=val;
-      });
-      if(changed){ try{localStorage.setItem(a.key+'-map',JSON.stringify(next));}catch{} }
-    });
     const target=getArea(targetKey);
     let tpos=null;
     try{ tpos = JSON.parse(localStorage.getItem(targetKey+'-map')||'null'); }catch{}
     tpos = {...(tpos||target.defaultPos||{})};
+    if(Object.values(tpos).some(v=>String(v).split(',').includes(pid))){
+      return; // already placed in this zone — nothing to do
+    }
     let placed=false;
     for(let y=0;y<target.rows&&!placed;y++){
       for(let x=0;x<target.cols&&!placed;x++){
@@ -426,7 +414,7 @@ export function Catalogue(){
       <select value={masterZone} onChange={e=>setMasterZone(e.target.value)}
         style={{flex:'1 1 140px',minWidth:0,width:0,padding:'6px 8px',borderRadius:6,border:'none',
           fontSize:13,color:T.text}}>
-        <option value="">Move to zone&hellip;</option>
+        <option value="">Add to zone&hellip;</option>
         {AREAS.map(a=><option key={a.key} value={a.key}>{a.label}</option>)}
       </select>
       <button onClick={saveMasterMove} disabled={!masterZone} style={{flexShrink:0,
@@ -434,7 +422,7 @@ export function Catalogue(){
         background:masterMoved?'#22c55e':(masterZone?'#fff':'rgba(255,255,255,0.3)'),
         color:masterMoved?'#fff':(masterZone?T.accent:'rgba(255,255,255,0.7)'),
         cursor:masterZone?'pointer':'default'}}>
-        {masterMoved?'✓ Moved':'Save to Zone'}
+        {masterMoved?'✓ Added':'Add to Zone'}
       </button>
       <button onClick={()=>setSelectedIds(new Set())} style={{flexShrink:0,padding:'6px 10px',borderRadius:6,
         border:'1px solid rgba(255,255,255,0.5)',background:'transparent',color:'#fff',fontSize:12,cursor:'pointer'}}>

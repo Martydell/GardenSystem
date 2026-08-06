@@ -278,7 +278,7 @@ export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeCo
                 <select value={pendingZone} onChange={e=>setPendingZone(e.target.value)}
                   style={{flex:'1 1 0',minWidth:0,width:0,fontSize:10,padding:'3px 4px',borderRadius:6,
                     border:'1px solid '+T.border,background:T.input,color:T.text}}>
-                  <option value="">Move to zone&hellip;</option>
+                  <option value="">Add to zone&hellip;</option>
                   {zoneOptions.map(z=><option key={z.key} value={z.key}>{z.label}</option>)}
                 </select>
               </div>
@@ -288,7 +288,7 @@ export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeCo
                   background:justMoved?'rgba(34,197,94,0.15)':(pendingZone?T.accent:T.input),
                   color:justMoved?'#22c55e':(pendingZone?'#fff':T.sub),
                   cursor:pendingZone?'pointer':'default'}}>
-                {justMoved?'✓ Moved':'Save zone'}
+                {justMoved?'✓ Added':'Add to zone'}
               </button>
             </div>
           )}
