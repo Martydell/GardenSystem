@@ -149,9 +149,7 @@ export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeCo
 
   const delay = Math.min(animIdx * 0.045, 0.65) + 's';
   const cardStyle = {
-    flex: M ? '1 1 calc(50% - 8px)' : '0 0 220px',
-    maxWidth: M ? 'calc(50% - 8px)' : 220,
-    minWidth: M ? 'calc(50% - 8px)' : 'auto',
+    width:'100%',
     perspective:1000,
     filter: urgent ? 'drop-shadow(0 0 8px rgba(239,68,68,0.5))' :
             flowering ? 'drop-shadow(0 0 8px rgba(122,184,106,0.6))' : 'none',

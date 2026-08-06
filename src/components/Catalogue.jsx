@@ -288,7 +288,10 @@ export function Catalogue(){
                 {arr.map((p,i)=>{
                   const pid=String(p.id), isSel=selectedIds.has(pid);
                   return (
-                    <div key={p.id} style={{position:'relative'}}>
+                    <div key={p.id} style={{position:'relative',
+                      flex: M ? '1 1 calc(50% - 8px)' : '0 0 220px',
+                      maxWidth: M ? 'calc(50% - 8px)' : 220,
+                      minWidth: M ? 'calc(50% - 8px)' : 'auto'}}>
                       <button onClick={e=>{e.stopPropagation();toggleSelect(p.id);}}
                         title={isSel?'Deselect':'Select for bulk move'}
                         style={{position:'absolute',top:-6,right:-6,zIndex:6,width:24,height:24,borderRadius:'50%',
