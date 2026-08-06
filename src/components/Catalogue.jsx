@@ -80,7 +80,7 @@ export function Catalogue(){
   }
   function saveMasterMove(){
     if(!masterZone||!selectedIds.size)return;
-    allPlants.filter(p=>selectedIds.has(String(p.id))).forEach(p=>reassignPlant(p,masterZone));
+    activePlants.filter(p=>selectedIds.has(String(p.id))).forEach(p=>reassignPlant(p,masterZone));
     setSelectedIds(new Set());
     setMasterZone('');
     setMasterMoved(true);
@@ -139,9 +139,57 @@ export function Catalogue(){
   const [careHistory, setCareHistory] = React.useState(()=>{try{return JSON.parse(localStorage.getItem('plant-care-history')||'{}');}catch{return {};}});
   const [bulkWaterModal, setBulkWaterModal] = React.useState(false);
   const [pestModal, setPestModal] = React.useState(null);
+  const [deletedIds, setDeletedIds] = React.useState(()=>{try{return new Set(JSON.parse(localStorage.getItem('deleted-plants')||'[]'));}catch{return new Set();}});
+  const [archivedIds, setArchivedIds] = React.useState(()=>{try{return new Set(JSON.parse(localStorage.getItem('archived-plants')||'[]'));}catch{return new Set();}});
 
   const T = dark ? DARK : LIGHT;
   const allPlants = React.useMemo(()=>[...OUTDOOR_PLANTS,...INDOOR_PLANTS,...HYDRO_PLANTS,...PRODUCE_PLANTS],[]);
+  const activePlants = allPlants.filter(p=>!deletedIds.has(String(p.id)));
+  const careActivePlants = activePlants.filter(p=>!archivedIds.has(String(p.id)));
+  const activeCounts = {
+    outdoor: activePlants.filter(p=>plantCategory(p)==='outdoor').length,
+    indoor:  activePlants.filter(p=>plantCategory(p)==='indoor').length,
+    hydro:   activePlants.filter(p=>plantCategory(p)==='hydro').length,
+    produce: activePlants.filter(p=>plantCategory(p)==='produce').length,
+  };
+
+  function deletePlant(id){
+    const pid=String(id);
+    const next=new Set(deletedIds); next.add(pid);
+    setDeletedIds(next);
+    try{localStorage.setItem('deleted-plants',JSON.stringify([...next]));}catch{}
+    AREAS.forEach(a=>{
+      let pos=null;
+      try{ pos = JSON.parse(localStorage.getItem(a.key+'-map')||'null'); }catch{}
+      if(!pos) pos = a.defaultPos||null;
+      if(!pos || !Object.values(pos).some(v=>String(v).split(',').includes(pid))) return;
+      const cleaned={};
+      let changed=false;
+      Object.entries(pos).forEach(([cell,val])=>{
+        const ids=String(val).split(',').filter(Boolean);
+        if(ids.includes(pid)){
+          changed=true;
+          const filtered=ids.filter(x=>x!==pid);
+          if(filtered.length) cleaned[cell]=filtered.join(',');
+        } else cleaned[cell]=val;
+      });
+      if(changed){ try{localStorage.setItem(a.key+'-map',JSON.stringify(cleaned));}catch{} }
+    });
+    setDataVersion(v=>v+1);
+  }
+  function restorePlant(id){
+    const pid=String(id);
+    const next=new Set(deletedIds); next.delete(pid);
+    setDeletedIds(next);
+    try{localStorage.setItem('deleted-plants',JSON.stringify([...next]));}catch{}
+  }
+  function toggleArchive(id){
+    const pid=String(id);
+    const next=new Set(archivedIds);
+    next.has(pid)?next.delete(pid):next.add(pid);
+    setArchivedIds(next);
+    try{localStorage.setItem('archived-plants',JSON.stringify([...next]));}catch{}
+  }
 
   React.useEffect(()=>{
     const onScroll=()=>setCoverY(Math.min(80,50+window.scrollY*0.03));
@@ -194,7 +242,7 @@ export function Catalogue(){
     try{ localStorage.setItem('plant-wishlist',JSON.stringify(updated)); }catch{}
   }
   function bulkWater(){
-    const overdue=allPlants.filter(p=>getUrgency(p,careLog,'watered').level==='overdue');
+    const overdue=careActivePlants.filter(p=>getUrgency(p,careLog,'watered').level==='overdue');
     const ts=Date.now();
     const updL={...careLog}, updH={...careHistory};
     overdue.forEach(p=>{
@@ -208,7 +256,7 @@ export function Catalogue(){
     setBulkWaterModal(false);
   }
 
-  const allTags = React.useMemo(()=>[...new Set(allPlants.flatMap(p=>p.tags||[]))].sort(),[allPlants]);
+  const allTags = [...new Set(activePlants.flatMap(p=>p.tags||[]))].sort();
 
   function toggleTag(t){ setTags(ts=>ts.includes(t)?ts.filter(x=>x!==t):[...ts,t]); }
 
@@ -221,21 +269,34 @@ export function Catalogue(){
     });
   }
 
-  const attention = allPlants.filter(p=>getUrgency(p,careLog,'watered').level==='overdue').length;
+  const attention = careActivePlants.filter(p=>getUrgency(p,careLog,'watered').level==='overdue').length;
 
   // Zone membership — derived live from each area's map placements (no plant record changes
   // needed). Anything never manually placed anywhere falls back to the zone matching its old
   // outdoor/indoor/hydro/produce type, so nothing sits permanently "unplaced".
   const currentArea = area ? getArea(area) : null;
-  const placedIds = React.useMemo(()=>{
-    const ids=new Set();
-    AREAS.forEach(a=>plantsInArea(a.key,allPlants,a.defaultPos).forEach(p=>ids.add(String(p.id))));
-    return ids;
-  },[allPlants,dataVersion]);
+  const placedIds = new Set();
+  AREAS.forEach(a=>plantsInArea(a.key,activePlants,a.defaultPos).forEach(p=>placedIds.add(String(p.id))));
+  const plantZoneMap = {};
+  const groupIds = {}; GROUPS.forEach(g=>{groupIds[g.key]=new Set();});
+  AREAS.forEach(a=>{
+    plantsInArea(a.key,activePlants,a.defaultPos).forEach(p=>{
+      const pid=String(p.id);
+      (plantZoneMap[pid]=plantZoneMap[pid]||[]).push({key:a.key,label:getAreaName(a.key)});
+      groupIds[a.group].add(pid);
+    });
+  });
+  activePlants.forEach(p=>{
+    const pid=String(p.id);
+    if(placedIds.has(pid)) return;
+    const fallbackArea=getArea(DEFAULT_ZONE_FOR_CATEGORY[plantCategory(p)]);
+    if(fallbackArea) groupIds[fallbackArea.group].add(pid);
+  });
+  const groupCounts = {}; GROUPS.forEach(g=>{groupCounts[g.key]=groupIds[g.key].size;});
   const zonePlants = area ? (()=>{
-    const explicit = plantsInArea(area, allPlants, currentArea.defaultPos);
+    const explicit = plantsInArea(area, activePlants, currentArea.defaultPos);
     const ids = new Set(explicit.map(p=>String(p.id)));
-    const fallback = allPlants.filter(p=>
+    const fallback = activePlants.filter(p=>
       !placedIds.has(String(p.id)) && !ids.has(String(p.id)) && DEFAULT_ZONE_FOR_CATEGORY[plantCategory(p)]===area);
     return [...explicit, ...fallback];
   })() : [];
@@ -264,6 +325,8 @@ export function Catalogue(){
       produce: out.filter(p=>plantCategory(p)==='produce'),
     };
     const anyResults = Object.values(byType).some(a=>a.length>0);
+    Object.values(byType).forEach(arr=>arr.sort((a,b)=>
+      (archivedIds.has(String(a.id))?1:0)-(archivedIds.has(String(b.id))?1:0)));
     return (
       <>
         {['outdoor','indoor','hydro','produce'].map(t=>{
@@ -292,7 +355,8 @@ export function Catalogue(){
                       <Card plant={p} onSelect={setSelected} careLog={careLog} onLog={logCare}
                         onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}
                         onDragStart={overviewMode?handleCardDragStart:undefined}
-                        onReassign={reassignPlant} zoneOptions={AREAS}/>
+                        onReassign={reassignPlant} zoneOptions={AREAS}
+                        zoneLabels={plantZoneMap[pid]||[]} archived={archivedIds.has(pid)}/>
                     </div>
                   );
                 })}
@@ -438,7 +502,7 @@ export function Catalogue(){
       <style>{CSS}</style>
       {/* ── Cover Slideshow ── */}
       <div style={{position:'relative',height:M?220:320,overflow:'hidden',background:'#061006'}}>
-        <CoverSlideshow allPlants={allPlants}/>
+        <CoverSlideshow allPlants={activePlants}/>
         {/* gradient overlay — dark at top/bottom, lighter in centre */}
         <div style={{position:'absolute',inset:0,
           background:'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.1) 45%, rgba(0,0,0,0.55) 100%)',
@@ -453,15 +517,15 @@ export function Catalogue(){
           </h1>
           <p style={{color:'rgba(255,255,255,0.8)',fontSize:M?12:14,
             textShadow:'0 1px 8px rgba(0,0,0,0.7)',letterSpacing:.3}}>
-            <span style={{color:'#86efac'}}>{OUTDOOR_PLANTS.length} outdoor</span>
+            <span style={{color:'#86efac'}}>{activeCounts.outdoor} outdoor</span>
             &nbsp;&bull;&nbsp;
-            <span style={{color:'#93c5fd'}}>{INDOOR_PLANTS.length} indoor</span>
+            <span style={{color:'#93c5fd'}}>{activeCounts.indoor} indoor</span>
             &nbsp;&bull;&nbsp;
-            <span style={{color:'#fcd34d'}}>{HYDRO_PLANTS.length} greenhouse</span>
+            <span style={{color:'#fcd34d'}}>{activeCounts.hydro} greenhouse</span>
             &nbsp;&bull;&nbsp;
-            <span style={{color:'#fca5a5'}}>{PRODUCE_PLANTS.length} produce</span>
+            <span style={{color:'#fca5a5'}}>{activeCounts.produce} produce</span>
             &nbsp;&bull;&nbsp;
-            {allPlants.length} plants
+            {activePlants.length} plants
           </p>
         </div>
         {/* Dark/Light toggle */}
@@ -479,7 +543,7 @@ export function Catalogue(){
           msOverflowStyle:'none',scrollbarWidth:'none',WebkitOverflowScrolling:'touch'}}>
           {groupBtn('overview','Overview','&#x1F3E1;',attention||null)}
           {GROUPS.map(g=>groupBtn(g.key,g.label,g.icon,null))}
-          {!M&&<div style={{marginLeft:8,flexShrink:0}}><NotificationManager allPlants={allPlants} careLog={careLog}/></div>}
+          {!M&&<div style={{marginLeft:8,flexShrink:0}}><NotificationManager allPlants={careActivePlants} careLog={careLog}/></div>}
         </div>
       </div>
 
@@ -518,19 +582,25 @@ export function Catalogue(){
         {/* ── Overview ── */}
         {group==='overview'&&(
           <div style={{paddingTop:20}}>
-            <div style={{background:'linear-gradient(135deg, rgba(74,124,63,0.12), rgba(74,124,63,0.03))',
-              border:'1px solid '+T.border,borderRadius:12,padding:'16px 18px',marginBottom:20}}>
-              <h2 style={{fontSize:18,fontWeight:700,color:T.text,margin:'0 0 6px',display:'flex',alignItems:'center',gap:8}}>
-                &#x1F331; Welcome to Marty's Plant Haven
-              </h2>
-              <p style={{color:T.sub,fontSize:13,lineHeight:1.6,margin:0}}>
-                A home for tracking every plant across the house, garden and greenhouse in one place —
-                {' '}{allPlants.length} plants and counting. Browse the full catalogue, keep on top of watering
-                and feeding schedules, map out exactly where everything lives, log pests and issues as they
-                come up, and keep a wishlist of what's next. Use the <strong style={{color:T.text}}>Indoor</strong>,{' '}
-                <strong style={{color:T.text}}>Outdoor</strong> and <strong style={{color:T.text}}>Green House</strong> tabs
-                above to explore each zone, or stay here on Overview for the big picture.
-              </p>
+            <h2 style={{fontSize:18,fontWeight:700,color:T.text,margin:'0 0 4px',display:'flex',alignItems:'center',gap:8}}>
+              &#x1F331; Welcome to Marty's Plant Haven
+            </h2>
+            <p style={{color:T.sub,fontSize:13,lineHeight:1.5,margin:'0 0 14px'}}>
+              {activePlants.length} plants tracked across every zone — tap a tile to jump straight in.
+            </p>
+            <div style={{display:'grid',gridTemplateColumns:M?'repeat(3,1fr)':'repeat(3,1fr)',gap:M?8:14,marginBottom:22}}>
+              {GROUPS.map(g=>(
+                <button key={g.key} onClick={()=>goGroup(g.key)} style={{
+                  background:'linear-gradient(135deg, rgba(74,124,63,0.16), rgba(74,124,63,0.04))',
+                  border:'1px solid '+T.border,borderRadius:12,padding:M?'14px 8px':'20px 14px',
+                  cursor:'pointer',textAlign:'center',display:'flex',flexDirection:'column',
+                  alignItems:'center',gap:6}}>
+                  <span style={{fontSize:M?26:34}} dangerouslySetInnerHTML={{__html:g.icon}}/>
+                  <span style={{fontSize:M?12:15,fontWeight:700,color:T.text}}>{g.label}</span>
+                  <span style={{fontSize:M?18:24,fontWeight:900,color:T.accent}}>{groupCounts[g.key]}</span>
+                  <span style={{fontSize:10,color:T.sub}}>plants</span>
+                </button>
+              ))}
             </div>
 
             <WeatherWidget/>
@@ -557,15 +627,35 @@ export function Catalogue(){
                 </button>
               </div>
             )}
-            {renderPlantSections(allPlants,'ov-',true)}
+            {renderPlantSections(activePlants,'ov-',true)}
 
             <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'32px 0 6px'}}>&#x1F4CA; Care Dashboard</h2>
             <p style={{color:T.sub,fontSize:13,marginBottom:16}}>Track watering, feeding, repotting, and recent care activity across every zone.</p>
-            <DashboardView allPlants={allPlants} careLog={careLog} onLog={logCare} onSelect={setSelected}/>
+            <DashboardView allPlants={careActivePlants} careLog={careLog} onLog={logCare} onSelect={setSelected}/>
             <BackupRestorePanel/>
 
             <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'32px 0 6px'}}>&#x1F331; Wishlist</h2>
             <WishlistView wishlist={wishlist} onAdd={addWish} onRemove={removeWish}/>
+
+            {deletedIds.size>0&&(
+              <>
+                <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'32px 0 6px'}}>&#x1F5D1;&#xFE0F; Deleted ({deletedIds.size})</h2>
+                <p style={{color:T.sub,fontSize:13,marginBottom:12}}>Removed from the catalogue — restore any of these if that was a mistake.</p>
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  {allPlants.filter(p=>deletedIds.has(String(p.id))).map(p=>(
+                    <div key={p.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',
+                      background:T.card,border:'1px solid '+T.border,borderRadius:8,padding:'8px 12px'}}>
+                      <span style={{fontSize:13,color:T.text}}>{p.name}</span>
+                      <button onClick={()=>restorePlant(p.id)} style={{padding:'4px 12px',borderRadius:6,
+                        border:'1px solid '+T.accent,background:'transparent',color:T.accent,fontSize:12,
+                        fontWeight:600,cursor:'pointer'}}>
+                        &#x21BA; Restore
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -692,7 +782,7 @@ export function Catalogue(){
             <MapGrid storageKey={area+'-map'} cols={mapCfg.cols} rows={mapCfg.rows} size={mapCfg.size}
               zones={currentArea.zones} defaultFilter={currentArea.defaultFilter}
               defaultPos={currentArea.defaultPos} defaultText={currentArea.defaultText}
-              allPlants={allPlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}
+              allPlants={activePlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}
               highlightPlantId={highlightPlantId}/>
           </div>
         )}
@@ -700,7 +790,7 @@ export function Catalogue(){
         {/* ── Zone: Irrigation ── */}
         {area&&areaTab==='irrigation'&&(
           <div style={{paddingTop:28}}>
-            <IrrigationView area={currentArea} allPlants={allPlants}/>
+            <IrrigationView area={currentArea} allPlants={activePlants}/>
           </div>
         )}
 
@@ -758,12 +848,15 @@ export function Catalogue(){
       {selected&&<DetailPanel plant={selected} onClose={()=>setSelected(null)}
         careLog={careLog} onLog={logCare} onPhotoZoom={setLightboxSrc}
         notes={notes} harvests={harvests} onAddNote={addNote} onAddHarvest={addHarvest}
-        careHistory={careHistory} pestLog={pestLog} onPest={setPestModal}/>}
+        careHistory={careHistory} pestLog={pestLog} onPest={setPestModal}
+        zoneLabels={plantZoneMap[String(selected.id)]||[]}
+        isArchived={archivedIds.has(String(selected.id))} onToggleArchive={()=>toggleArchive(selected.id)}
+        onDelete={()=>{deletePlant(selected.id);setSelected(null);}}/>}
       {lightboxSrc&&<PhotoLightbox src={lightboxSrc} onClose={()=>setLightboxSrc(null)}/>}
       {pestModal&&<PestLogModal plant={pestModal} pestLog={pestLog}
         onLog={logPest} onResolve={resolvePest} onClose={()=>setPestModal(null)}/>}
       {bulkWaterModal&&<BulkWaterModal
-        plants={allPlants.filter(p=>getUrgency(p,careLog,'watered').level==='overdue')}
+        plants={careActivePlants.filter(p=>getUrgency(p,careLog,'watered').level==='overdue')}
         onConfirm={bulkWater} onClose={()=>setBulkWaterModal(false)}/>}
       {showFilters&&<FiltersDrawer allTags={allTags} tags={tags} onToggle={toggleTag}
         onClear={()=>setTags([])} onClose={()=>setShowFilters(false)}/>}

@@ -4,7 +4,7 @@ import { CareHistorySparkline } from './PlantCards.jsx';
 import { INDOOR_PHOTOS, STATIC_PHOTO_URLS, TAG_C } from '../data/plants.js';
 import { STORAGE_INFO, ThemeCtx, badgeForType, getCustomPhoto, isFloweringNow, repotSeason, resizeImageToDataURL, setCustomPhoto, useIsMobile } from '../utils.js';
 
-export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes, harvests, onAddNote, onAddHarvest, careHistory, pestLog, onPest}){
+export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes, harvests, onAddNote, onAddHarvest, careHistory, pestLog, onPest, zoneLabels=[], isArchived=false, onToggleArchive, onDelete}){
   const T = React.useContext(ThemeCtx);
   const M = useIsMobile();
   const {badge,color}=badgeForType(plant.type);
@@ -57,6 +57,8 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
           {photo&&<img src={photo} alt={plant.name} style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
           {plant.medicinal&&<div style={{position:'absolute',top:12,left:12,background:'#10b981',
             color:'#fff',fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:5}}>&#x271A; MEDICINAL</div>}
+          {isArchived&&<div style={{position:'absolute',top:plant.medicinal?46:12,left:12,background:'rgba(107,114,128,0.9)',
+            color:'#fff',fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:5}}>&#x1F342; ARCHIVED</div>}
           <div style={{position:'absolute',top:12,right:12,background:color,
             color:'#fff',fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:5}}>{badge}</div>
           {flowering&&<div style={{position:'absolute',bottom:12,left:12,background:'rgba(122,184,106,0.9)',
@@ -108,6 +110,7 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
 
           {/* Care details */}
           <div style={{marginBottom:16}}>
+            {row('&#x1F4CD; Zones', zoneLabels.length?zoneLabels.map(z=>z.label).join(', '):'Not yet placed on a zone map')}
             {row('&#x1F4A7; Water', plant.water)}
             {row('&#x2600; Light', plant.light)}
             {row('&#x1F321; Temperature', plant.temp)}
@@ -145,6 +148,25 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
           <CompanionPanel plant={plant}/>
           <HarvestLog plant={plant} harvests={harvests} onAdd={onAddHarvest}/>
           <PestNotes plantId={plant.id} notes={notes} onAdd={onAddNote}/>
+
+          {(onToggleArchive||onDelete)&&(
+            <div style={{display:'flex',gap:8,marginTop:20,paddingTop:16,borderTop:'1px solid '+T.border}}>
+              {onToggleArchive&&<button onClick={onToggleArchive} style={{
+                flex:1,padding:'8px 0',background:isArchived?'rgba(34,197,94,0.12)':T.input,
+                border:'1px solid '+(isArchived?'#22c55e':T.border),borderRadius:8,
+                color:isArchived?'#22c55e':T.text,fontSize:12,fontWeight:600,cursor:'pointer'}}>
+                {isArchived?'↺ Unarchive':'\u{1F342} Archive (seasonal)'}
+              </button>}
+              {onDelete&&<button onClick={()=>{
+                if(window.confirm(`Remove ${plant.name} from the catalogue? You can restore it later from the Deleted list on Overview.`)) onDelete();
+              }} style={{
+                flex:1,padding:'8px 0',background:'transparent',
+                border:'1px solid rgba(239,68,68,0.4)',borderRadius:8,
+                color:'#ef4444',fontSize:12,fontWeight:600,cursor:'pointer'}}>
+                &#x1F5D1;&#xFE0F; Remove from catalogue
+              </button>}
+            </div>
+          )}
         </div>
       </div>
     </div>
