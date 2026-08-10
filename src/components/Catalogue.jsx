@@ -69,7 +69,13 @@ export function Catalogue(){
     setDataVersion(v=>v+1);
   }
   const [collapsedSections, setCollapsedSections] = React.useState(()=>{
-    try{ return new Set(JSON.parse(localStorage.getItem('overview-collapsed')||'[]')); }catch{ return new Set(); }
+    try{
+      const saved = localStorage.getItem('overview-collapsed');
+      // First-ever visit (nothing saved yet): start with the heaviest section — the full
+      // catalogue browse — collapsed, since it renders 100+ cards before you've asked for it.
+      if(saved==null) return new Set(['plants']);
+      return new Set(JSON.parse(saved));
+    }catch{ return new Set(['plants']); }
   });
   function toggleSection(key){
     setCollapsedSections(prev=>{
