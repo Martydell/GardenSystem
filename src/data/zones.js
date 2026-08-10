@@ -55,6 +55,11 @@ export const TERRACE_DEFAULT={
   "0,0":"53",
 };
 
+export const HERBGARDEN_DEFAULT={
+  "0,0":"p01","1,0":"p08","2,0":"p09",
+  "0,1":"h03","1,1":"p02","2,1":"p07",
+};
+
 export const INDOOR_ZONES=[
   // Living room — large main space with floor plants around the sofa
   {id:'living',   label:'Living Room',           col:'rgba(59,130,246,0.10)', border:'#3b82f6',x:0, y:0,w:10,h:5},
