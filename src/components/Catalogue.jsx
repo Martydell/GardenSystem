@@ -68,6 +68,25 @@ export function Catalogue(){
     try{ localStorage.setItem(targetKey+'-map',JSON.stringify(tpos)); }catch{}
     setDataVersion(v=>v+1);
   }
+  const [collapsedSections, setCollapsedSections] = React.useState(()=>{
+    try{ return new Set(JSON.parse(localStorage.getItem('overview-collapsed')||'[]')); }catch{ return new Set(); }
+  });
+  function toggleSection(key){
+    setCollapsedSections(prev=>{
+      const next=new Set(prev);
+      next.has(key)?next.delete(key):next.add(key);
+      try{localStorage.setItem('overview-collapsed',JSON.stringify([...next]));}catch{}
+      return next;
+    });
+  }
+  const sectionH2 = (key,label) => (
+    <button onClick={()=>toggleSection(key)} style={{display:'flex',alignItems:'center',gap:8,
+      width:'100%',background:'none',border:'none',cursor:'pointer',padding:0,textAlign:'left'}}>
+      <span style={{fontSize:13,color:T.sub,transition:'transform 0.2s',
+        transform:collapsedSections.has(key)?'rotate(-90deg)':'rotate(0deg)',display:'inline-block'}}>&#x25BC;</span>
+      <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:0}} dangerouslySetInnerHTML={{__html:label}}/>
+    </button>
+  );
   const [selectedIds, setSelectedIds] = React.useState(()=>new Set());
   const [masterZone, setMasterZone] = React.useState('');
   const [masterMoved, setMasterMoved] = React.useState(false);
@@ -620,32 +639,37 @@ export function Catalogue(){
               </div>
             </div>
 
-            <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'8px 0 6px'}}>&#x1F50D; All Plants</h2>
-            {searchBar}
-            {selectionBar}
-            {attention>0&&(
-              <div style={{marginBottom:8,display:'flex',justifyContent:'flex-end'}}>
-                <button onClick={()=>setBulkWaterModal(true)} style={{
-                  padding:'6px 14px',background:'rgba(59,130,246,0.12)',border:'1px solid rgba(59,130,246,0.35)',
-                  borderRadius:8,color:'#3b82f6',fontSize:12,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
-                  &#x1F4A7; Water all overdue ({attention})
-                </button>
-              </div>
-            )}
-            {renderPlantSections(activePlants,'ov-',true)}
+            <div style={{margin:'8px 0 6px'}}>{sectionH2('plants','&#x1F50D; All Plants')}</div>
+            {!collapsedSections.has('plants')&&(<>
+              {searchBar}
+              {selectionBar}
+              {attention>0&&(
+                <div style={{marginBottom:8,display:'flex',justifyContent:'flex-end'}}>
+                  <button onClick={()=>setBulkWaterModal(true)} style={{
+                    padding:'6px 14px',background:'rgba(59,130,246,0.12)',border:'1px solid rgba(59,130,246,0.35)',
+                    borderRadius:8,color:'#3b82f6',fontSize:12,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+                    &#x1F4A7; Water all overdue ({attention})
+                  </button>
+                </div>
+              )}
+              {renderPlantSections(activePlants,'ov-',true)}
+            </>)}
 
-            <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'32px 0 6px'}}>&#x1F4CA; Care Dashboard</h2>
-            <p style={{color:T.sub,fontSize:13,marginBottom:16}}>Track watering, feeding, repotting, and recent care activity across every zone.</p>
-            <CareSummaryPanel allPlants={careActivePlants} careLog={careLog} pestLog={pestLog} onSelect={setSelected}/>
-            <DashboardView allPlants={careActivePlants} careLog={careLog} onLog={logCare} onSelect={setSelected}/>
-            <BackupRestorePanel/>
+            <div style={{margin:'32px 0 6px'}}>{sectionH2('dashboard','&#x1F4CA; Care Dashboard')}</div>
+            {!collapsedSections.has('dashboard')&&(<>
+              <p style={{color:T.sub,fontSize:13,marginBottom:16}}>Track watering, feeding, repotting, and recent care activity across every zone.</p>
+              <CareSummaryPanel allPlants={careActivePlants} careLog={careLog} pestLog={pestLog} onSelect={setSelected}/>
+              <DashboardView allPlants={careActivePlants} careLog={careLog} onLog={logCare} onSelect={setSelected}/>
+              <BackupRestorePanel/>
+            </>)}
 
-            <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'32px 0 6px'}}>&#x1F331; Wishlist</h2>
-            <WishlistView wishlist={wishlist} onAdd={addWish} onRemove={removeWish}/>
+            <div style={{margin:'32px 0 6px'}}>{sectionH2('wishlist','&#x1F331; Wishlist')}</div>
+            {!collapsedSections.has('wishlist')&&<WishlistView wishlist={wishlist} onAdd={addWish} onRemove={removeWish}/>}
 
             {deletedIds.size>0&&(
               <>
-                <h2 style={{fontSize:20,fontWeight:700,color:T.text,margin:'32px 0 6px'}}>&#x1F5D1;&#xFE0F; Deleted ({deletedIds.size})</h2>
+                <div style={{margin:'32px 0 6px'}}>{sectionH2('deleted',`&#x1F5D1;&#xFE0F; Deleted (${deletedIds.size})`)}</div>
+                {!collapsedSections.has('deleted')&&(<>
                 <p style={{color:T.sub,fontSize:13,marginBottom:12}}>Removed from the catalogue — restore any of these if that was a mistake.</p>
                 <div style={{display:'flex',flexDirection:'column',gap:6}}>
                   {allPlants.filter(p=>deletedIds.has(String(p.id))).map(p=>(
@@ -660,6 +684,7 @@ export function Catalogue(){
                     </div>
                   ))}
                 </div>
+                </>)}
               </>
             )}
           </div>
