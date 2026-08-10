@@ -2,7 +2,7 @@ import React from 'react';
 import { CareActionsBar, CompanionPanel, HarvestLog, PestNotes } from './Modals.jsx';
 import { CareHistorySparkline } from './PlantCards.jsx';
 import { INDOOR_PHOTOS, STATIC_PHOTO_URLS, TAG_C } from '../data/plants.js';
-import { STORAGE_INFO, ThemeCtx, addPhotoToHistory, badgeForType, fmtDate, getCustomPhoto, getPhotoHistory, isFloweringNow, plantCategory, removePhotoFromHistory, repotSeason, resizeImageToDataURL, useIsMobile, wikiThumb } from '../utils.js';
+import { MEDICINAL_INFO, STORAGE_INFO, ThemeCtx, addPhotoToHistory, badgeForType, fmtDate, getCustomPhoto, getPhotoHistory, isFloweringNow, plantCategory, removePhotoFromHistory, repotSeason, resizeImageToDataURL, useIsMobile, wikiThumb } from '../utils.js';
 
 export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes, harvests, onAddNote, onAddHarvest, careHistory, pestLog, onPest, zoneLabels=[], isArchived=false, onToggleArchive, onDelete}){
   const T = React.useContext(ThemeCtx);
@@ -161,6 +161,14 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
             <div style={{background:'rgba(16,185,129,0.08)',borderLeft:'2px solid #10b981',borderRadius:6,padding:'10px 14px',marginBottom:12}}>
               <div style={{fontSize:11,fontWeight:600,color:'#10b981',textTransform:'uppercase',letterSpacing:.5,marginBottom:6}}>&#x1F4E6; Storage &amp; Preservation</div>
               <div style={{fontSize:13,color:T.text,lineHeight:1.6}}>{STORAGE_INFO[String(plant.id)]}</div>
+            </div>
+          )}
+
+          {plant.medicinal&&MEDICINAL_INFO[String(plant.id)]&&(
+            <div style={{background:'rgba(139,92,246,0.08)',borderLeft:'2px solid #8b5cf6',borderRadius:6,padding:'10px 14px',marginBottom:12}}>
+              <div style={{fontSize:11,fontWeight:600,color:'#8b5cf6',textTransform:'uppercase',letterSpacing:.5,marginBottom:6}}>&#x271A; Medicinal Use</div>
+              <div style={{fontSize:13,color:T.text,lineHeight:1.6,marginBottom:6}}>{MEDICINAL_INFO[String(plant.id)]}</div>
+              <div style={{fontSize:11,color:T.sub,fontStyle:'italic'}}>Traditional/historical use — not medical advice.</div>
             </div>
           )}
 

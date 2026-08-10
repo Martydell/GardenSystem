@@ -325,3 +325,24 @@ export const STORAGE_INFO={
   "h12":"Infuse in white wine vinegar 2 weeks for vivid pink vinegar — strain and bottle. Freeze in oil. Make purple pesto.",
   "h13":"Use immediately for maximum flavour. Keep between damp paper towels in fridge 2–3 days. Not suitable for drying — use fresh.",
 };
+
+// Traditional/historical medicinal use — informational only, not medical advice.
+export const MEDICINAL_INFO={
+  "3":  "Traditionally used in aromatherapy for relaxation and sleep; the essential oil has mild antiseptic and calming properties.",
+  "5":  "Contains thymol, historically used as a mild antiseptic and in herbal remedies for coughs and sore throats.",
+  "6":  "Traditional folk remedy for minor skin irritation; flowers and leaves used in herbal teas for mild coughs.",
+  "15": "Long used to ease digestion and nausea — menthol in the leaves has a mild soothing, cooling effect.",
+  "16": "Rich in carvacrol and thymol, traditionally used as a natural antimicrobial and to support digestion.",
+  "17": "Traditionally associated with improved memory and circulation; also used as a mild antiseptic and anti-inflammatory herb.",
+  "19": "Source of thymol, a compound historically used in cough remedies and as a natural antiseptic.",
+  "24": "Same medicinal compounds as common oregano (carvacrol, thymol) — traditionally used for digestive and antimicrobial support.",
+  "47": "Petals used in traditional folk medicine for their anti-inflammatory and wound-healing properties, often as a skin salve.",
+  "i23":"Used in some traditional Southeast Asian herbal medicine for coughs and respiratory complaints, though evidence is largely anecdotal.",
+  "h01":"Rich in lycopene, an antioxidant linked in nutritional studies to heart health and reduced cancer risk.",
+  "h02":"Contains eugenol, with traditional use as a mild anti-inflammatory and digestive aid.",
+  "h03":"Capsaicin, the compound giving chillies their heat, is used in topical creams for pain relief.",
+  "h05":"Long used medicinally for pain, nausea and appetite stimulation; legal status for medicinal use varies by jurisdiction.",
+  "h11":"Like other basils, contains eugenol — traditionally used as a mild anti-inflammatory and digestive aid.",
+  "h12":"Higher anthocyanin content than green basil, with the same traditional digestive and anti-inflammatory folk uses.",
+  "h13":"Traditional culinary herb also used in folk medicine as a mild digestive aid and anti-inflammatory.",
+};
