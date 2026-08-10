@@ -235,7 +235,8 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
   }
 
   // Sidebar: always shows all plants — same plant can be placed in multiple cells
-  const sidebar=allPlants.filter(p=>zFilter==='all'||plantCategory(p)===zFilter);
+  const sidebar=allPlants.filter(p=>zFilter==='all'||plantCategory(p)===zFilter)
+    .sort((a,b)=>a.name.localeCompare(b.name));
   const countInMap=pid=>Object.values(pos).filter(v=>String(v).split(',').includes(String(pid))).length;
   const GP=4, gridW=cols*(size+GP)-GP, gridH=rows*(size+GP)-GP;
 

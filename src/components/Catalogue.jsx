@@ -384,7 +384,8 @@ export function Catalogue(){
     };
     const anyResults = Object.values(byType).some(a=>a.length>0);
     Object.values(byType).forEach(arr=>arr.sort((a,b)=>
-      (archivedIds.has(String(a.id))?1:0)-(archivedIds.has(String(b.id))?1:0)));
+      (archivedIds.has(String(a.id))?1:0)-(archivedIds.has(String(b.id))?1:0)
+      || a.name.localeCompare(b.name)));
     return (
       <>
         {['outdoor','indoor','hydro','produce'].map(t=>{
