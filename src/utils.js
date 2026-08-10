@@ -133,6 +133,21 @@ export const URG_COLOR = { overdue:'#ef4444', soon:'#f59e0b', ok:'#22c55e', unse
 
 export function plantCategory(p){ const id=String(p.id); return id.startsWith('h')?'hydro':id.startsWith('i')?'indoor':id.startsWith('p')?'produce':'outdoor'; }
 
+export function getCustomPlants(){
+  try{ return JSON.parse(localStorage.getItem('custom-plants')||'[]'); }catch{ return []; }
+}
+
+export function addCustomPlant({name,latin,family,category}){
+  const prefix = category==='indoor'?'i-':category==='hydro'?'h-':category==='produce'?'p-':'custom-';
+  const plant = {
+    id: prefix+Date.now(), n:'NEW', name, latin:latin||'', family:family||'',
+    type:'', tags:[], desc:'Added via plant identifier.',
+  };
+  const next=[...getCustomPlants(),plant];
+  try{ localStorage.setItem('custom-plants',JSON.stringify(next)); }catch{}
+  return next;
+}
+
 export function plantsInArea(areaKey, allPlants, defaultPos){
   let pos=null;
   try{ pos = JSON.parse(localStorage.getItem(areaKey+'-map')||'null'); }catch{}

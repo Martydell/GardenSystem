@@ -7,12 +7,13 @@ import { NotificationManager, WeatherWidget } from './Weather.jsx';
 import { WishlistView } from './Wishlist.jsx';
 import { AREAS, DEFAULT_ZONE_FOR_CATEGORY, GROUPS, areasInGroup, getArea } from '../data/areas.js';
 import { HYDRO_PLANTS, INDOOR_PLANTS, OUTDOOR_PLANTS, PRODUCE_PLANTS, TAG_C } from '../data/plants.js';
-import { DARK, LIGHT, ThemeCtx, getUrgency, plantCategory, plantsInArea, useIsMobile, useScrollCollapse } from '../utils.js';
+import { DARK, LIGHT, ThemeCtx, addCustomPlant, getCustomPlants, getUrgency, plantCategory, plantsInArea, useIsMobile, useScrollCollapse } from '../utils.js';
 
 const MapGrid = React.lazy(()=>import('./MapGrid.jsx').then(m=>({default:m.MapGrid})));
 const IrrigationView = React.lazy(()=>import('./Irrigation.jsx').then(m=>({default:m.IrrigationView})));
 const PestsView = React.lazy(()=>import('./Pests.jsx').then(m=>({default:m.PestsView})));
 const ZonePrintModal = React.lazy(()=>import('./ZonePrintView.jsx').then(m=>({default:m.ZonePrintModal})));
+const IdentifyView = React.lazy(()=>import('./Identify.jsx').then(m=>({default:m.IdentifyView})));
 
 function ZoneTabLoading({T}){
   return <div style={{padding:24,textAlign:'center',color:T.sub,fontSize:13}}>Loading&hellip;</div>;
@@ -185,9 +186,13 @@ export function Catalogue(){
   const [pestModal, setPestModal] = React.useState(null);
   const [deletedIds, setDeletedIds] = React.useState(()=>{try{return new Set(JSON.parse(localStorage.getItem('deleted-plants')||'[]'));}catch{return new Set();}});
   const [archivedIds, setArchivedIds] = React.useState(()=>{try{return new Set(JSON.parse(localStorage.getItem('archived-plants')||'[]'));}catch{return new Set();}});
+  const [customPlants, setCustomPlants] = React.useState(()=>getCustomPlants());
+  function handleAddCustomPlant(fields){
+    setCustomPlants(addCustomPlant(fields));
+  }
 
   const T = dark ? DARK : LIGHT;
-  const allPlants = React.useMemo(()=>[...OUTDOOR_PLANTS,...INDOOR_PLANTS,...HYDRO_PLANTS,...PRODUCE_PLANTS],[]);
+  const allPlants = React.useMemo(()=>[...OUTDOOR_PLANTS,...INDOOR_PLANTS,...HYDRO_PLANTS,...PRODUCE_PLANTS,...customPlants],[customPlants]);
   const activePlants = allPlants.filter(p=>!deletedIds.has(String(p.id)));
   const careActivePlants = activePlants.filter(p=>!archivedIds.has(String(p.id)));
   const activeCounts = {
@@ -596,12 +601,13 @@ export function Catalogue(){
           msOverflowStyle:'none',scrollbarWidth:'none',WebkitOverflowScrolling:'touch'}}>
           {groupBtn('overview','Overview','&#x1F3E1;',attention||null)}
           {GROUPS.map(g=>groupBtn(g.key,g.label,g.icon,null))}
+          {groupBtn('identify','Identify','&#x1F50D;',null)}
           {!M&&<div style={{marginLeft:8,flexShrink:0}}><NotificationManager allPlants={careActivePlants} careLog={careLog}/></div>}
         </div>
       </div>
 
       {/* ── Leaf zone navigation — the specific zones within the selected group ── */}
-      {group!=='overview'&&(
+      {group!=='overview'&&group!=='identify'&&(
         <div style={{position:'sticky',top:45,zIndex:99,background:T.bg,
           borderBottom:'1px solid '+T.border,padding:'8px 16px'}}>
           <div className="chip-row" style={{display:'flex',gap:6,overflowX:'auto',
@@ -631,6 +637,13 @@ export function Catalogue(){
 
       <div style={{maxWidth:areaTab==='map'&&area?'none':1200,margin:'0 auto',
         padding:areaTab==='map'&&area?(M?'0 8px 100px':'0 16px 40px'):(M?'0 12px 100px':'0 20px 60px')}}>
+
+        {/* ── Identify ── */}
+        {group==='identify'&&(
+          <React.Suspense fallback={<ZoneTabLoading T={T}/>}>
+            <IdentifyView onAddWish={addWish} onAddCustomPlant={handleAddCustomPlant}/>
+          </React.Suspense>
+        )}
 
         {/* ── Overview ── */}
         {group==='overview'&&(
