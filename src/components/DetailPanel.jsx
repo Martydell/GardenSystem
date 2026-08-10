@@ -2,7 +2,7 @@ import React from 'react';
 import { CareActionsBar, CompanionPanel, HarvestLog, PestNotes } from './Modals.jsx';
 import { CareHistorySparkline } from './PlantCards.jsx';
 import { INDOOR_PHOTOS, STATIC_PHOTO_URLS, TAG_C } from '../data/plants.js';
-import { STORAGE_INFO, ThemeCtx, badgeForType, getCustomPhoto, isFloweringNow, plantCategory, repotSeason, resizeImageToDataURL, setCustomPhoto, useIsMobile } from '../utils.js';
+import { STORAGE_INFO, ThemeCtx, addPhotoToHistory, badgeForType, fmtDate, getCustomPhoto, getPhotoHistory, isFloweringNow, plantCategory, removePhotoFromHistory, repotSeason, resizeImageToDataURL, useIsMobile } from '../utils.js';
 
 export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes, harvests, onAddNote, onAddHarvest, careHistory, pestLog, onPest, zoneLabels=[], isArchived=false, onToggleArchive, onDelete}){
   const T = React.useContext(ThemeCtx);
@@ -13,6 +13,8 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
     ? (INDOOR_PHOTOS[plant.id]||STATIC_PHOTO_URLS[plant.id]||null)
     : STATIC_PHOTO_URLS[plant.id]||null;
   const [customPhoto,setCustomPhotoState]=React.useState(()=>getCustomPhoto(plant.id));
+  const [history,setHistory]=React.useState(()=>getPhotoHistory(plant.id));
+  const [historyOpenAt,setHistoryOpenAt]=React.useState(null);
   const photo = customPhoto||basePhoto;
   const uploadRef=React.useRef(null);
   async function handleDetailUpload(e){
@@ -21,7 +23,13 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
     if(!file)return;
     const dataUrl=await resizeImageToDataURL(file,1200,0.75);
     setCustomPhotoState(dataUrl);
-    setCustomPhoto(plant.id,dataUrl);
+    setHistory(addPhotoToHistory(plant.id,dataUrl));
+  }
+  function handleRemoveHistoryPhoto(ts){
+    const next=removePhotoFromHistory(plant.id,ts);
+    setHistory(next);
+    setCustomPhotoState(next[0]?next[0].url:null);
+    setHistoryOpenAt(null);
   }
   React.useEffect(()=>{
     const h=e=>{if(e.key==='Escape')onClose();};
@@ -54,7 +62,7 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
         <div style={{position:'relative',height:200,overflow:'hidden',borderRadius:'16px 16px 0 0',
           background:T.surface,cursor:photo?'zoom-in':'default'}}
           onClick={photo?()=>onPhotoZoom(photo):undefined}>
-          {photo&&<img src={photo} alt={plant.name} style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
+          {photo&&<img src={photo} alt={plant.name} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
           {plant.medicinal&&<div style={{position:'absolute',top:12,left:12,background:'#10b981',
             color:'#fff',fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:5}}>&#x271A; MEDICINAL</div>}
           {isArchived&&<div style={{position:'absolute',top:plant.medicinal?46:12,left:12,background:'rgba(107,114,128,0.9)',
@@ -73,6 +81,24 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
             background:'rgba(0,0,0,0.5)',border:'none',color:'#fff',borderRadius:'50%',
             width:28,height:28,cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center'}}>&#x2715;</button>
         </div>
+        {history.length>1&&(
+          <div style={{display:'flex',gap:6,padding:'10px 20px 0',overflowX:'auto'}}>
+            {history.map((h,i)=>(
+              <button key={h.ts||'legacy'} onClick={()=>setHistoryOpenAt(i)} title={h.ts?fmtDate(h.ts):'Earlier'}
+                style={{flexShrink:0,width:44,height:44,borderRadius:6,overflow:'hidden',padding:0,cursor:'pointer',
+                  border:'1px solid '+T.border,background:T.surface}}>
+                <img src={h.url} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+              </button>
+            ))}
+          </div>
+        )}
+        {historyOpenAt!=null&&(
+          <PhotoHistoryModal history={history} index={historyOpenAt}
+            onIndexChange={setHistoryOpenAt}
+            onClose={()=>setHistoryOpenAt(null)}
+            onRemove={handleRemoveHistoryPhoto}
+            T={T}/>
+        )}
         <div style={{padding:20}}>
           <div style={{marginBottom:12}}>
             <h2 style={{margin:'0 0 4px',color:T.text,fontSize:22}}>{plant.name}</h2>
@@ -169,6 +195,42 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function PhotoHistoryModal({history,index,onIndexChange,onClose,onRemove,T}){
+  const entry=history[index];
+  React.useEffect(()=>{
+    const h=e=>{
+      if(e.key==='Escape')onClose();
+      if(e.key==='ArrowLeft'&&index>0)onIndexChange(index-1);
+      if(e.key==='ArrowRight'&&index<history.length-1)onIndexChange(index+1);
+    };
+    window.addEventListener('keydown',h);
+    return()=>window.removeEventListener('keydown',h);
+  },[index,history.length,onClose,onIndexChange]);
+  if(!entry)return null;
+  const btnStyle={background:'rgba(0,0,0,0.55)',border:'none',color:'#fff',borderRadius:'50%',
+    width:36,height:36,cursor:'pointer',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'};
+  return (
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.92)',
+      zIndex:1100,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',cursor:'zoom-out'}}>
+      <img src={entry.url} alt="" onClick={e=>e.stopPropagation()} style={{
+        maxWidth:'90vw',maxHeight:'78vh',objectFit:'contain',borderRadius:8,
+        boxShadow:'0 8px 40px rgba(0,0,0,0.8)'}}/>
+      <div onClick={e=>e.stopPropagation()} style={{display:'flex',alignItems:'center',gap:16,marginTop:16}}>
+        <button onClick={()=>onIndexChange(index-1)} disabled={index===0} style={{...btnStyle,opacity:index===0?0.3:1,cursor:index===0?'default':'pointer'}}>&#x2190;</button>
+        <span style={{color:'#fff',fontSize:13}}>{entry.ts?fmtDate(entry.ts):'Earlier'} &bull; {index+1}/{history.length}</span>
+        <button onClick={()=>onIndexChange(index+1)} disabled={index===history.length-1} style={{...btnStyle,opacity:index===history.length-1?0.3:1,cursor:index===history.length-1?'default':'pointer'}}>&#x2192;</button>
+      </div>
+      <button onClick={e=>{e.stopPropagation();if(window.confirm('Remove this photo from the growth history?'))onRemove(entry.ts);}}
+        style={{marginTop:10,background:'none',border:'1px solid rgba(239,68,68,0.5)',color:'#ef4444',
+          borderRadius:20,padding:'5px 14px',fontSize:12,cursor:'pointer'}}>
+        &#x1F5D1;&#xFE0F; Remove this photo
+      </button>
+      <button onClick={onClose} style={{position:'fixed',top:16,right:20,background:'none',
+        border:'none',color:'#fff',fontSize:28,cursor:'pointer',lineHeight:1}}>&#x2715;</button>
     </div>
   );
 }

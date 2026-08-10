@@ -12,6 +12,7 @@ import { DARK, LIGHT, ThemeCtx, getUrgency, plantCategory, plantsInArea, useIsMo
 const MapGrid = React.lazy(()=>import('./MapGrid.jsx').then(m=>({default:m.MapGrid})));
 const IrrigationView = React.lazy(()=>import('./Irrigation.jsx').then(m=>({default:m.IrrigationView})));
 const PestsView = React.lazy(()=>import('./Pests.jsx').then(m=>({default:m.PestsView})));
+const ZonePrintModal = React.lazy(()=>import('./ZonePrintView.jsx').then(m=>({default:m.ZonePrintModal})));
 
 function ZoneTabLoading({T}){
   return <div style={{padding:24,textAlign:'center',color:T.sub,fontSize:13}}>Loading&hellip;</div>;
@@ -32,6 +33,7 @@ export function Catalogue(){
   const [mapFull, setMapFull] = React.useState(false);
   const [showMapSettings, setShowMapSettings] = React.useState(false);
   const [showFilters, setShowFilters] = React.useState(false);
+  const [showPrint, setShowPrint] = React.useState(false);
   function goGroup(g){
     setGroup(g); setAreaTab('plants'); setHighlightPlantId(null);
     if(g==='overview'){ setArea(null); return; }
@@ -740,6 +742,11 @@ export function Catalogue(){
                   )}
                 </div>
                 <div style={{display:'flex',gap:6,marginLeft:'auto',alignItems:'center'}}>
+                  <button onClick={()=>setShowPrint(true)} title="Print zone summary"
+                    style={{padding:'5px 10px',borderRadius:20,border:'1px solid '+T.border,
+                      cursor:'pointer',fontSize:13,background:T.input,color:T.sub}}>
+                    &#x1F5A8;&#xFE0F;
+                  </button>
                   <button onClick={()=>setShowMapSettings(s=>!s)} title="Customise map grid"
                     style={{padding:'5px 10px',borderRadius:20,border:'1px solid '+(showMapSettings?T.accent:T.border),
                       cursor:'pointer',fontSize:13,background:showMapSettings?'rgba(74,124,63,0.12)':T.input,
@@ -901,6 +908,12 @@ export function Catalogue(){
         isArchived={archivedIds.has(String(selected.id))} onToggleArchive={()=>toggleArchive(selected.id)}
         onDelete={()=>{deletePlant(selected.id);setSelected(null);}}/>}
       {lightboxSrc&&<PhotoLightbox src={lightboxSrc} onClose={()=>setLightboxSrc(null)}/>}
+      {showPrint&&currentArea&&(
+        <React.Suspense fallback={<ZoneTabLoading T={T}/>}>
+          <ZonePrintModal area={area} currentArea={currentArea} allPlants={activePlants} careLog={careLog}
+            onClose={()=>setShowPrint(false)}/>
+        </React.Suspense>
+      )}
       {pestModal&&<PestLogModal plant={pestModal} pestLog={pestLog}
         onLog={logPest} onResolve={resolvePest} onClose={()=>setPestModal(null)}/>}
       {bulkWaterModal&&<BulkWaterModal

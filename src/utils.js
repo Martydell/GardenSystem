@@ -210,6 +210,38 @@ export function getCustomPhoto(id){try{return localStorage.getItem(customPhotoKe
 
 export function setCustomPhoto(id,dataUrl){try{if(dataUrl)localStorage.setItem(customPhotoKey(id),dataUrl);else localStorage.removeItem(customPhotoKey(id));}catch{}}
 
+const PHOTO_HISTORY_MAX=8;
+
+export function photoHistoryKey(id){return 'plant-photo-history-'+id;}
+
+export function getPhotoHistory(id){
+  let history=[];
+  try{ history=JSON.parse(localStorage.getItem(photoHistoryKey(id))||'[]'); }catch{ history=[]; }
+  if(!Array.isArray(history)) history=[];
+  if(history.length===0){
+    const legacy=getCustomPhoto(id);
+    if(legacy){
+      history=[{url:legacy,ts:null}];
+      try{ localStorage.setItem(photoHistoryKey(id),JSON.stringify(history)); }catch{}
+    }
+  }
+  return history;
+}
+
+export function addPhotoToHistory(id,dataUrl,ts=Date.now()){
+  const history=[{url:dataUrl,ts},...getPhotoHistory(id)].slice(0,PHOTO_HISTORY_MAX);
+  try{ localStorage.setItem(photoHistoryKey(id),JSON.stringify(history)); }catch{}
+  setCustomPhoto(id,dataUrl);
+  return history;
+}
+
+export function removePhotoFromHistory(id,ts){
+  const history=getPhotoHistory(id).filter(p=>p.ts!==ts);
+  try{ localStorage.setItem(photoHistoryKey(id),JSON.stringify(history)); }catch{}
+  setCustomPhoto(id,history[0]?history[0].url:null);
+  return history;
+}
+
 export function resizeImageToDataURL(file,maxW=1400,quality=0.68){
   return new Promise(resolve=>{
     const img=new Image(),url=URL.createObjectURL(file);
