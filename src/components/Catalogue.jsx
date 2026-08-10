@@ -92,6 +92,18 @@ export function Catalogue(){
       return next;
     });
   }
+  const [collapsedTypes, setCollapsedTypes] = React.useState(()=>{
+    try{ return new Set(JSON.parse(localStorage.getItem('overview-collapsed-types')||'[]')); }
+    catch{ return new Set(); }
+  });
+  function toggleType(key){
+    setCollapsedTypes(prev=>{
+      const next=new Set(prev);
+      next.has(key)?next.delete(key):next.add(key);
+      try{localStorage.setItem('overview-collapsed-types',JSON.stringify([...next]));}catch{}
+      return next;
+    });
+  }
   const sectionH2 = (key,label) => (
     <button onClick={()=>toggleSection(key)} style={{display:'flex',alignItems:'center',gap:8,
       width:'100%',background:'none',border:'none',cursor:'pointer',padding:0,textAlign:'left'}}>
@@ -339,12 +351,18 @@ export function Catalogue(){
     ? (pestLog||[]).filter(e=>!e.resolved && zonePlants.some(p=>String(p.id)===String(e.plantId))).length
     : 0;
 
-  const sectionHdr = (label,count) => (
-    <h2 className="section-hdr" style={{fontSize:18,fontWeight:700,color:T.accent,marginBottom:16,marginTop:32,
-      display:'flex',alignItems:'center',gap:10}}>
-      <span dangerouslySetInnerHTML={{__html:label}}/>
-      <span style={{fontSize:13,color:T.sub,fontWeight:400}}>{count} plants</span>
-    </h2>
+  const sectionHdr = (label,count,collapseKey) => (
+    <button onClick={()=>toggleType(collapseKey)} style={{display:'flex',alignItems:'center',gap:10,
+      width:'100%',background:'none',border:'none',cursor:'pointer',padding:0,textAlign:'left',
+      marginBottom:16,marginTop:32}}>
+      <span style={{fontSize:13,color:T.sub,transition:'transform 0.2s',
+        transform:collapsedTypes.has(collapseKey)?'rotate(-90deg)':'rotate(0deg)',display:'inline-block'}}>&#x25BC;</span>
+      <h2 className="section-hdr" style={{fontSize:18,fontWeight:700,color:T.accent,margin:0,
+        display:'flex',alignItems:'center',gap:10}}>
+        <span dangerouslySetInnerHTML={{__html:label}}/>
+        <span style={{fontSize:13,color:T.sub,fontWeight:400}}>{count} plants</span>
+      </h2>
+    </button>
   );
 
   // Renders a plant list grouped by type (Outdoor/Indoor/Greenhouse/Produce), search+tag filtered.
@@ -367,9 +385,11 @@ export function Catalogue(){
         {['outdoor','indoor','hydro','produce'].map(t=>{
           const arr=byType[t]; if(!arr.length) return null;
           const Card=CARD_BY_TYPE[t];
+          const collapseKey=keyPrefix+t;
           return (
             <React.Fragment key={t}>
-              {sectionHdr(HDR_BY_TYPE[t],arr.length)}
+              {sectionHdr(HDR_BY_TYPE[t],arr.length,collapseKey)}
+              {!collapsedTypes.has(collapseKey)&&
               <div key={keyPrefix+t+search+tags.join()} className="cards-grid" style={{display:'grid',
                 gridTemplateColumns:M?'repeat(2,1fr)':'repeat(auto-fill,minmax(200px,1fr))',gap:M?8:16,marginBottom:8}}>
                 {arr.map((p,i)=>{
@@ -393,7 +413,7 @@ export function Catalogue(){
                     </div>
                   );
                 })}
-              </div>
+              </div>}
             </React.Fragment>
           );
         })}
