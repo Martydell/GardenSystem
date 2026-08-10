@@ -21,8 +21,20 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
       return defaultPos||{};
     }catch{return defaultPos||{};}
   });
+  // objects: [{id, typeId, x, y}] — x,y is the top-left cell; footprint (w,h) comes from OBJECT_TYPES.
   const [objects,setObjects]=React.useState(()=>{
-    try{return JSON.parse(localStorage.getItem(storageKey+'-objects')||'{}');}catch{return {};}
+    try{
+      const s=JSON.parse(localStorage.getItem(storageKey+'-objects')||'null');
+      if(Array.isArray(s)) return s;
+      // Migrate old single-cell format {"x,y":typeId} → instance array
+      if(s && typeof s === 'object'){
+        return Object.entries(s).map(([key,typeId])=>{
+          const [x,y]=key.split(',').map(Number);
+          return {id:'obj-'+x+'-'+y+'-'+Date.now()+Math.random().toString(36).slice(2,6),typeId,x,y};
+        });
+      }
+      return [];
+    }catch{return [];}
   });
   const [dragId,setDragId]=React.useState(null);
   const clickTimerRef=React.useRef(null);
@@ -180,6 +192,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
   // Cells hold a comma-separated list of plant ids, e.g. "33,60" — a mixed pot with two species.
   // Single-plant cells are just one id with no comma (backward compatible with older saved layouts).
   function placeAt(pid,x,y,fromCell=null){
+    if(objectAt(x,y)) return;
     const key=`${x},${y}`;
     const pidStr=String(pid);
     const existing=(pos[key]||'').split(',').filter(Boolean);
@@ -202,7 +215,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
     for(let y=zp.y;y<zp.y+zone.h;y++){
       for(let x=zp.x;x<zp.x+zone.w;x++){
         const key=`${x},${y}`;
-        if(disabledCells.has(key)||!isFree(key))continue;
+        if(disabledCells.has(key)||!isFree(key,x,y))continue;
         const dist=(x-hintX)**2+(y-hintY)**2;
         if(dist<bestDist){bestDist=dist;best={x,y};}
       }
@@ -210,7 +223,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
     return best;
   }
   function placeInZone(pid,zone,hintX,hintY){
-    const cell=nearestFreeCell(zone,hintX,hintY,key=>!pos[key]);
+    const cell=nearestFreeCell(zone,hintX,hintY,(key,x,y)=>!pos[key]&&!objectAt(x,y));
     if(cell){ placeAt(pid,cell.x,cell.y); return; }
     placeAt(pid,hintX,hintY);
   }
@@ -223,23 +236,64 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
     save(n);
   }
 
-  // Objects (furniture, heaters, etc.) — a parallel, simpler placement layer to plants:
-  // one object per cell, no multi-merge. Mutually exclusive with a plant in the same cell.
+  // Objects (furniture, heaters, etc.) — footprint-aware placement layer, separate from plants.
+  // Mutually exclusive with plants and other objects across their whole footprint.
   function saveObjects(o){setObjects(o);try{localStorage.setItem(storageKey+'-objects',JSON.stringify(o));}catch{}}
-  function placeObjectAt(typeId,x,y,fromCell=null){
-    const key=`${x},${y}`;
-    const next={...objects,[key]:typeId};
-    if(fromCell&&fromCell!==key) delete next[fromCell];
+  function objectAt(x,y){
+    return objects.find(o=>{
+      const t=OBJECT_TYPES.find(ot=>ot.id===o.typeId);
+      const w=t?t.w:1,h=t?t.h:1;
+      return x>=o.x&&x<o.x+w&&y>=o.y&&y<o.y+h;
+    })||null;
+  }
+  function footprintFree(typeId,x,y,excludeId=null){
+    const t=OBJECT_TYPES.find(ot=>ot.id===typeId);
+    const w=t?t.w:1,h=t?t.h:1;
+    if(x<0||y<0||x+w>cols||y+h>rows) return false;
+    for(let yy=y;yy<y+h;yy++){
+      for(let xx=x;xx<x+w;xx++){
+        const key=`${xx},${yy}`;
+        if(disabledCells.has(key)) return false;
+        if(pos[key]) return false;
+        const occ=objectAt(xx,yy);
+        if(occ&&occ.id!==excludeId) return false;
+      }
+    }
+    return true;
+  }
+  function placeObjectAt(typeId,x,y,fromId=null,force=false){
+    const t=OBJECT_TYPES.find(ot=>ot.id===typeId);
+    const w=t?t.w:1,h=t?t.h:1;
+    const cx=Math.max(0,Math.min(x,cols-w)),cy=Math.max(0,Math.min(y,rows-h));
+    if(!force&&!footprintFree(typeId,cx,cy,fromId)) return;
+    const next=objects.filter(o=>o.id!==fromId);
+    next.push({id:fromId||('obj-'+cx+'-'+cy+'-'+Date.now()+Math.random().toString(36).slice(2,6)),typeId,x:cx,y:cy});
     saveObjects(next);
   }
-  function placeObjectInZone(typeId,zone,hintX,hintY){
-    const cell=nearestFreeCell(zone,hintX,hintY,key=>!pos[key]&&!objects[key]);
-    if(cell){ placeObjectAt(typeId,cell.x,cell.y); return; }
-    placeObjectAt(typeId,hintX,hintY);
+  // Finds the free top-left anchor for typeId's footprint nearest to the drop point,
+  // scanning only positions where the whole footprint fits within the zone's bounds.
+  function nearestFreeFootprint(zone,typeId,hintX,hintY,excludeId=null){
+    const zp=getZonePos(zone);
+    const t=OBJECT_TYPES.find(ot=>ot.id===typeId);
+    const w=t?t.w:1,h=t?t.h:1;
+    let best=null,bestDist=Infinity;
+    for(let y=zp.y;y<=zp.y+zone.h-h;y++){
+      for(let x=zp.x;x<=zp.x+zone.w-w;x++){
+        if(!footprintFree(typeId,x,y,excludeId))continue;
+        const dist=(x-hintX)**2+(y-hintY)**2;
+        if(dist<bestDist){bestDist=dist;best={x,y};}
+      }
+    }
+    return best;
   }
-  function removeObjectCell(x,y){
-    const key=`${x},${y}`;
-    const n={...objects}; delete n[key]; saveObjects(n);
+  function placeObjectInZone(typeId,zone,hintX,hintY){
+    const cell=nearestFreeFootprint(zone,typeId,hintX,hintY);
+    if(cell){ placeObjectAt(typeId,cell.x,cell.y); return; }
+    const zp=getZonePos(zone);
+    placeObjectAt(typeId,zp.x,zp.y,null,true);
+  }
+  function removeObject(id){
+    saveObjects(objects.filter(o=>o.id!==id));
   }
 
   function exportLayout(){
@@ -555,7 +609,8 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                 const wUlvl=plant?getUrgency(plant,careLog,'watered').level:null;
                 const anyOverdue=multi&&plants.some(p=>getUrgency(p,careLog,'watered').level==='overdue');
                 const zone=getZn(x,y);
-                const obj=!plant&&objects[key]?OBJECT_TYPES.find(o=>o.id===objects[key]):null;
+                const objInstance=!plant?objectAt(x,y):null;
+                const obj=objInstance?OBJECT_TYPES.find(o=>o.id===objInstance.typeId):null;
                 const paintC=cellColor[key]||null;
                 const labelTxt=cellText[key]||null;
                 const isEditingThis=editCell===key&&mode==='label';
@@ -598,17 +653,9 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                       if(mode==='place')onSelect(plant);
                       else if(mode==='label'){setEditCell(key);setEditText(cellText[key]||'');}
                     }:undefined}
-                    draggable={mode==='place'&&(!!obj||(!!plant&&!multi))}
+                    draggable={mode==='place'&&!!plant&&!multi}
                     onDragStart={e=>{
-                      if(mode!=='place')return;
-                      if(obj){
-                        e.dataTransfer.setData('objectTypeId',obj.id);
-                        e.dataTransfer.setData('fromCell',key);
-                        setDragId('obj:'+obj.id);
-                        e.stopPropagation();
-                        return;
-                      }
-                      if(!plant||multi)return;
+                      if(!plant||mode!=='place'||multi)return;
                       e.dataTransfer.setData('plantId',String(plant.id));
                       e.dataTransfer.setData('fromCell',key);
                       setDragId(String(plant.id));
@@ -620,17 +667,22 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                     onDrop={e=>{
                       if(mode==='place'){
                         e.preventDefault();
-                        const fromCell=e.dataTransfer.getData('fromCell');
                         const otid=e.dataTransfer.getData('objectTypeId');
-                        if(otid){ placeObjectAt(otid,x,y,fromCell||null); setHov(null); return; }
+                        if(otid){
+                          const fromObjectId=e.dataTransfer.getData('fromObjectId');
+                          placeObjectAt(otid,x,y,fromObjectId||null);
+                          setHov(null);
+                          return;
+                        }
+                        if(objectAt(x,y)){ setHov(null); return; }
                         const pid=e.dataTransfer.getData('plantId');
+                        const fromCell=e.dataTransfer.getData('fromCell');
                         if(pid)placeAt(pid,x,y,fromCell||null);
                         setHov(null);
                       }
                     }}
                     onDoubleClick={()=>{
                       if(mode!=='place'||isDisabled)return;
-                      if(obj){ removeObjectCell(x,y); return; }
                       if(plant&&!multi){
                         if(clickTimerRef.current){clearTimeout(clickTimerRef.current);clickTimerRef.current=null;}
                         removeCell(x,y);
@@ -669,7 +721,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                       :mode==='label'?'Click to edit label'
                       :multi?plants.length+' plants in this pot — click a tile to view, double-click a tile to remove it, drag another plant here to add more'
                       :plant?plant.name+' — drag to move, double-click to remove, drag another plant here to combine into one pot'
-                      :obj?obj.label+' — drag to move, double-click to remove'
+                      :obj?obj.label
                       :(zone?zone.label:'Drag a plant here')
                     }
                     style={{width:size,height:size,borderRadius:8,overflow:'hidden',position:'relative',
@@ -696,17 +748,6 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                     {!isDisabled&&!multi&&plant&&<div style={{position:'absolute',top:3,right:3,width:8,height:8,zIndex:3,borderRadius:'50%',background:col,boxShadow:'0 0 0 1px rgba(0,0,0,.35)'}}/>}
                     {!isDisabled&&!multi&&plant&&wUlvl==='overdue'&&<div style={{position:'absolute',top:3,left:3,zIndex:3,background:'#ef4444',color:'#fff',borderRadius:'50%',width:14,height:14,fontSize:9,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900}}>!</div>}
                     {!isDisabled&&!multi&&plant&&paintC&&<div style={{position:'absolute',bottom:3,left:3,width:8,height:8,zIndex:4,borderRadius:'50%',background:paintC,border:'1px solid rgba(0,0,0,0.4)'}}/>}
-                    {/* Object cell (furniture, heater, etc.) — icon + label, no photo/urgency */}
-                    {!isDisabled&&obj&&(
-                      <div style={{position:'absolute',inset:0,zIndex:1,display:'flex',flexDirection:'column',
-                        alignItems:'center',justifyContent:'center',gap:2,background:T.surface}}>
-                        <span style={{fontSize:Math.round(size*0.32)}}>{obj.icon}</span>
-                        <span style={{fontSize:9,color:T.text,fontWeight:700,textAlign:'center',lineHeight:1.1,
-                          padding:'0 2px',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>
-                          {obj.label}
-                        </span>
-                      </div>
-                    )}
                     {/* Multi-plant (mixed pot) cell: mini-tiles in a single horizontal row, one per plant */}
                     {!isDisabled&&multi&&(
                       <div style={{position:'absolute',inset:0,display:'flex',
@@ -798,6 +839,38 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                 );
               }))}
             </div>
+            {/* Object overlays — footprint-sized tiles, draggable in place mode, double-click to remove */}
+            {objects.map(o=>{
+              const t=OBJECT_TYPES.find(ot=>ot.id===o.typeId);
+              if(!t)return null;
+              return(
+                <div key={o.id}
+                  draggable={mode==='place'}
+                  onDragStart={mode==='place'?e=>{
+                    e.dataTransfer.setData('objectTypeId',o.typeId);
+                    e.dataTransfer.setData('fromObjectId',o.id);
+                    setDragId('obj:'+o.id);
+                    e.stopPropagation();
+                  }:undefined}
+                  onDragEnd={()=>setDragId(null)}
+                  onDoubleClick={()=>{if(mode==='place')removeObject(o.id);}}
+                  title={t.label+' — drag to move, double-click to remove'}
+                  style={{
+                    position:'absolute',
+                    left:o.x*(size+GP),top:o.y*(size+GP),
+                    width:t.w*(size+GP)-GP,height:t.h*(size+GP)-GP,
+                    borderRadius:8,border:'2px solid '+T.sub,background:T.surface,
+                    zIndex:2,cursor:mode==='place'?'grab':'default',
+                    display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,
+                    userSelect:'none'}}>
+                  <span style={{fontSize:Math.round(size*0.32)}}>{t.icon}</span>
+                  <span style={{fontSize:9,color:T.text,fontWeight:700,textAlign:'center',lineHeight:1.1,
+                    padding:'0 2px',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>
+                    {t.label}
+                  </span>
+                </div>
+              );
+            })}
             {/* Zone label overlays — draggable in place mode, editable/deletable in zones mode */}
             {effectiveZones.map(z=>{
               const zp=getZonePos(z);
@@ -826,7 +899,8 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                       const cy=zp.y+Math.max(0,Math.min(z.h-1,Math.floor((e.clientY-rect.top)/(size+GP))));
                       const otid=e.dataTransfer.getData('objectTypeId');
                       if(otid){
-                        if(fromCell) placeObjectAt(otid,cx,cy,fromCell);
+                        const fromObjectId=e.dataTransfer.getData('fromObjectId');
+                        if(fromObjectId) placeObjectAt(otid,cx,cy,fromObjectId);
                         else placeObjectInZone(otid,z,cx,cy);
                         setHov(null);
                         return;
