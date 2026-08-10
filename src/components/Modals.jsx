@@ -22,29 +22,69 @@ export function PhotoLightbox({src, onClose}){
 
 export function CareActionsBar({plant, careLog, onLog}){
   const T = React.useContext(ThemeCtx);
+  const [dateFor, setDateFor] = React.useState(null);
+  const [dateVal, setDateVal] = React.useState('');
+  const today = new Date().toISOString().slice(0,10);
   const actions = [
     {type:'watered', label:'Watered', icon:'&#x1F4A7;', always:true},
     {type:'fed',     label:'Fed',     icon:'&#x1F9EA;', always:true},
     {type:'repotted',label:'Repotted',icon:'&#x1FAB4;', always:repotApplicable(plant)},
     {type:'pruned',  label:'Pruned',  icon:'&#x2702;&#xFE0F;', always:pruneApplicable(plant)},
   ].filter(a=>a.always);
+  function openDatePicker(type){
+    setDateFor(type);
+    setDateVal(today);
+  }
+  function confirmDate(){
+    if(!dateVal)return;
+    const ts = new Date(dateVal+'T12:00:00').getTime();
+    onLog(plant.id, dateFor, ts);
+    setDateFor(null);
+  }
+  const dateForAction = actions.find(a=>a.type===dateFor);
   return (
-    <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-      {actions.map(a=>{
-        const ts=careLog[String(plant.id)+'-'+a.type];
-        const days=ts?Math.round((Date.now()-ts)/86400000):null;
-        return (
-          <button key={a.type} onClick={()=>onLog(plant.id,a.type)} style={{
-            flex:'1 1 80px', padding:'8px 10px', border:'1px solid '+T.borderMid,
-            borderRadius:8, background:T.input, color:T.text, cursor:'pointer',
-            display:'flex',flexDirection:'column',alignItems:'center',gap:2,
-          }}>
-            <span style={{fontSize:18}} dangerouslySetInnerHTML={{__html:a.icon}}/>
-            <span style={{fontSize:12,fontWeight:600}}>{a.label}</span>
-            <span style={{fontSize:10,color:T.sub}}>{days!=null?days+'d ago':'never'}</span>
+    <div>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        {actions.map(a=>{
+          const ts=careLog[String(plant.id)+'-'+a.type];
+          const days=ts?Math.round((Date.now()-ts)/86400000):null;
+          return (
+            <div key={a.type} style={{flex:'1 1 80px',display:'flex',flexDirection:'column',gap:3}}>
+              <button onClick={()=>onLog(plant.id,a.type)} style={{
+                padding:'8px 10px', border:'1px solid '+T.borderMid,
+                borderRadius:8, background:T.input, color:T.text, cursor:'pointer',
+                display:'flex',flexDirection:'column',alignItems:'center',gap:2,
+              }}>
+                <span style={{fontSize:18}} dangerouslySetInnerHTML={{__html:a.icon}}/>
+                <span style={{fontSize:12,fontWeight:600}}>{a.label}</span>
+                <span style={{fontSize:10,color:T.sub}}>{days!=null?days+'d ago':'never'}</span>
+              </button>
+              <button onClick={()=>openDatePicker(a.type)} style={{
+                padding:'2px 0',border:'none',background:'none',cursor:'pointer',
+                color:T.sub,fontSize:10,textDecoration:'underline'}}>
+                &#x1F4C5; Log with date
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      {dateFor&&(
+        <div style={{display:'flex',gap:8,alignItems:'center',marginTop:10,padding:'8px 10px',
+          background:T.surface,borderRadius:8,border:'1px solid '+T.border,flexWrap:'wrap'}}>
+          <span style={{fontSize:12,color:T.text,fontWeight:600}}>{dateForAction?.label} on:</span>
+          <input type="date" value={dateVal} max={today} onChange={e=>setDateVal(e.target.value)}
+            style={{padding:'4px 6px',borderRadius:6,border:'1px solid '+T.border,
+              background:T.input,color:T.text,fontSize:12}}/>
+          <button onClick={confirmDate} style={{padding:'5px 12px',borderRadius:6,border:'none',
+            background:T.green,color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer'}}>
+            Save
           </button>
-        );
-      })}
+          <button onClick={()=>setDateFor(null)} style={{padding:'5px 10px',borderRadius:6,
+            border:'1px solid '+T.border,background:'transparent',color:T.sub,fontSize:12,cursor:'pointer'}}>
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   );
 }

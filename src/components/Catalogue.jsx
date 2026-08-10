@@ -197,13 +197,16 @@ export function Catalogue(){
     return()=>window.removeEventListener('scroll',onScroll);
   },[]);
 
-  function logCare(plantId, type){
-    const ts = Date.now();
-    const updated = {...careLog, [String(plantId)+'-'+type]: ts};
+  function logCare(plantId, type, ts=Date.now()){
+    // A backdated entry (e.g. logging a repot from last week) shouldn't regress the
+    // "most recently done" summary date if something more recent is already logged —
+    // but it should still be recorded in history for the sparkline.
+    const hKey=String(plantId)+'-'+type;
+    const existing = careLog[hKey];
+    const updated = {...careLog, [hKey]: (existing&&existing>ts) ? existing : ts};
     setCareLog(updated);
     try{ localStorage.setItem('plant-care-log',JSON.stringify(updated)); }catch{}
-    const hKey=String(plantId)+'-'+type;
-    const updH={...careHistory,[hKey]:[ts,...(careHistory[hKey]||[])].slice(0,30)};
+    const updH={...careHistory,[hKey]:[ts,...(careHistory[hKey]||[])].sort((a,b)=>b-a).slice(0,30)};
     setCareHistory(updH);
     try{ localStorage.setItem('plant-care-history',JSON.stringify(updH)); }catch{}
   }
