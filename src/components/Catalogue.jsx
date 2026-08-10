@@ -338,14 +338,12 @@ export function Catalogue(){
           return (
             <React.Fragment key={t}>
               {sectionHdr(HDR_BY_TYPE[t],arr.length)}
-              <div key={keyPrefix+t+search+tags.join()} className="cards-grid" style={{display:'flex',flexWrap:'wrap',gap:M?8:16,marginBottom:8}}>
+              <div key={keyPrefix+t+search+tags.join()} className="cards-grid" style={{display:'grid',
+                gridTemplateColumns:M?'repeat(2,1fr)':'repeat(auto-fill,minmax(200px,1fr))',gap:M?8:16,marginBottom:8}}>
                 {arr.map((p,i)=>{
                   const pid=String(p.id), isSel=selectedIds.has(pid);
                   return (
-                    <div key={p.id} style={{position:'relative',
-                      flex: M ? '1 1 calc(50% - 8px)' : '0 0 220px',
-                      maxWidth: M ? 'calc(50% - 8px)' : 220,
-                      minWidth: M ? 'calc(50% - 8px)' : 'auto'}}>
+                    <div key={p.id} style={{position:'relative'}}>
                       <button onClick={e=>{e.stopPropagation();toggleSelect(p.id);}}
                         title={isSel?'Deselect':'Select for bulk move'}
                         style={{position:'absolute',top:-6,right:-6,zIndex:6,width:24,height:24,borderRadius:'50%',
