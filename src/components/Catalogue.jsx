@@ -1,16 +1,21 @@
 import React from 'react';
 import { BackupRestorePanel, CareSummaryPanel, DashboardView, SeasonalTasksPanel, SowingCalendar, WateringCalendarView } from './Calendars.jsx';
 import { DetailPanel } from './DetailPanel.jsx';
-import { IrrigationView } from './Irrigation.jsx';
-import { MapGrid } from './MapGrid.jsx';
 import { BulkWaterModal, FiltersDrawer, PestLogModal, PhotoLightbox } from './Modals.jsx';
 import { CoverSlideshow, HydroCard, IndoorCard, OutdoorCard, ProduceCard } from './PlantCards.jsx';
-import { PestsView } from './Pests.jsx';
 import { NotificationManager, WeatherWidget } from './Weather.jsx';
 import { WishlistView } from './Wishlist.jsx';
 import { AREAS, DEFAULT_ZONE_FOR_CATEGORY, GROUPS, areasInGroup, getArea } from '../data/areas.js';
 import { HYDRO_PLANTS, INDOOR_PLANTS, OUTDOOR_PLANTS, PRODUCE_PLANTS, TAG_C } from '../data/plants.js';
 import { DARK, LIGHT, ThemeCtx, getUrgency, plantCategory, plantsInArea, useIsMobile, useScrollCollapse } from '../utils.js';
+
+const MapGrid = React.lazy(()=>import('./MapGrid.jsx').then(m=>({default:m.MapGrid})));
+const IrrigationView = React.lazy(()=>import('./Irrigation.jsx').then(m=>({default:m.IrrigationView})));
+const PestsView = React.lazy(()=>import('./Pests.jsx').then(m=>({default:m.PestsView})));
+
+function ZoneTabLoading({T}){
+  return <div style={{padding:24,textAlign:'center',color:T.sub,fontSize:13}}>Loading&hellip;</div>;
+}
 
 const CARD_BY_TYPE = {outdoor:OutdoorCard, indoor:IndoorCard, hydro:HydroCard, produce:ProduceCard};
 const HDR_BY_TYPE = {
@@ -816,18 +821,22 @@ export function Catalogue(){
             {!mapFull&&<p style={{color:T.sub,fontSize:13,marginBottom:12}}>
               Drag plants onto the grid &bull; Double-click to remove (in &#x1F331; Place mode) &bull; &#x270F;&#xFE0F; rename zone
             </p>}
-            <MapGrid storageKey={area+'-map'} cols={mapCfg.cols} rows={mapCfg.rows} size={mapCfg.size}
-              zones={currentArea.zones} defaultFilter={currentArea.defaultFilter}
-              defaultPos={currentArea.defaultPos} defaultText={currentArea.defaultText}
-              allPlants={activePlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}
-              highlightPlantId={highlightPlantId}/>
+            <React.Suspense fallback={<ZoneTabLoading T={T}/>}>
+              <MapGrid storageKey={area+'-map'} cols={mapCfg.cols} rows={mapCfg.rows} size={mapCfg.size}
+                zones={currentArea.zones} defaultFilter={currentArea.defaultFilter}
+                defaultPos={currentArea.defaultPos} defaultText={currentArea.defaultText}
+                allPlants={activePlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}
+                highlightPlantId={highlightPlantId}/>
+            </React.Suspense>
           </div>
         )}
 
         {/* ── Zone: Irrigation ── */}
         {area&&areaTab==='irrigation'&&(
           <div style={{paddingTop:28}}>
-            <IrrigationView area={currentArea} allPlants={activePlants}/>
+            <React.Suspense fallback={<ZoneTabLoading T={T}/>}>
+              <IrrigationView area={currentArea} allPlants={activePlants}/>
+            </React.Suspense>
           </div>
         )}
 
@@ -854,7 +863,9 @@ export function Catalogue(){
         {/* ── Zone: Pests ── */}
         {area&&areaTab==='pests'&&(
           <div style={{paddingTop:28}}>
-            <PestsView plants={zonePlants} pestLog={pestLog} onResolve={resolvePest} onSelect={setSelected}/>
+            <React.Suspense fallback={<ZoneTabLoading T={T}/>}>
+              <PestsView plants={zonePlants} pestLog={pestLog} onResolve={resolvePest} onSelect={setSelected}/>
+            </React.Suspense>
           </div>
         )}
       </div>

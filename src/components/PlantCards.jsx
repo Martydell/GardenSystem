@@ -1,6 +1,6 @@
 import React from 'react';
 import { INDOOR_PHOTOS, INDOOR_WIKI_SLUGS, STATIC_PHOTO_URLS, WIKI_SLUGS } from '../data/plants.js';
-import { ThemeCtx, URG_COLOR, feedInterval, fmtDate, getCustomPhoto, getUrgency, isFloweringNow, repotApplicable, resizeImageToDataURL, setCustomPhoto, useIsMobile, waterInterval } from '../utils.js';
+import { ThemeCtx, URG_COLOR, feedInterval, fmtDate, getCustomPhoto, getUrgency, isFloweringNow, plantCategory, repotApplicable, resizeImageToDataURL, setCustomPhoto, useIsMobile, waterInterval } from '../utils.js';
 
 export function CoverSlideshow({allPlants}){
   const slides=React.useMemo(()=>{
@@ -358,7 +358,7 @@ export function ProduceCard({plant,onSelect,careLog,onLog,onPhotoZoom,animIdx=0,
 
 export function AttentionCard({plant, careLog, onLog, onSelect}){
   const T = React.useContext(ThemeCtx);
-  const photo = getCustomPhoto(plant.id)||(plant.type==='indoor'
+  const photo = getCustomPhoto(plant.id)||(plantCategory(plant)==='indoor'
     ? (INDOOR_PHOTOS[plant.id]||STATIC_PHOTO_URLS[plant.id])
     : STATIC_PHOTO_URLS[plant.id]);
   const wU = getUrgency(plant,careLog,'watered');

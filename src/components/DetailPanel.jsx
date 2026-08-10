@@ -2,14 +2,14 @@ import React from 'react';
 import { CareActionsBar, CompanionPanel, HarvestLog, PestNotes } from './Modals.jsx';
 import { CareHistorySparkline } from './PlantCards.jsx';
 import { INDOOR_PHOTOS, STATIC_PHOTO_URLS, TAG_C } from '../data/plants.js';
-import { STORAGE_INFO, ThemeCtx, badgeForType, getCustomPhoto, isFloweringNow, repotSeason, resizeImageToDataURL, setCustomPhoto, useIsMobile } from '../utils.js';
+import { STORAGE_INFO, ThemeCtx, badgeForType, getCustomPhoto, isFloweringNow, plantCategory, repotSeason, resizeImageToDataURL, setCustomPhoto, useIsMobile } from '../utils.js';
 
 export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes, harvests, onAddNote, onAddHarvest, careHistory, pestLog, onPest, zoneLabels=[], isArchived=false, onToggleArchive, onDelete}){
   const T = React.useContext(ThemeCtx);
   const M = useIsMobile();
-  const {badge,color}=badgeForType(plant.type);
+  const {badge,color}=badgeForType(plantCategory(plant));
   const flowering=isFloweringNow(plant);
-  const basePhoto = plant.type==='indoor'
+  const basePhoto = plantCategory(plant)==='indoor'
     ? (INDOOR_PHOTOS[plant.id]||STATIC_PHOTO_URLS[plant.id]||null)
     : STATIC_PHOTO_URLS[plant.id]||null;
   const [customPhoto,setCustomPhotoState]=React.useState(()=>getCustomPhoto(plant.id));
