@@ -41,15 +41,13 @@ function ResultCard({result, onAddWish, onAddCustomPlant, T}){
           <button onClick={addWish} disabled={wishAdded} style={{
             padding:'5px 12px',borderRadius:20,border:'1px solid '+(wishAdded?'#22c55e':T.border),
             background:wishAdded?'rgba(34,197,94,0.12)':T.input,color:wishAdded?'#22c55e':T.text,
-            fontSize:12,cursor:wishAdded?'default':'pointer',fontWeight:600}}>
-            {wishAdded?'&#x2713; Added to Wishlist':'&#x1F331; Add to Wishlist'}
-          </button>
+            fontSize:12,cursor:wishAdded?'default':'pointer',fontWeight:600}}
+            dangerouslySetInnerHTML={{__html:wishAdded?'&#x2713; Added to Wishlist':'&#x1F331; Add to Wishlist'}}/>
           <button onClick={()=>setShowForm(s=>!s)} disabled={added} style={{
             padding:'5px 12px',borderRadius:20,border:'1px solid '+(added?'#22c55e':T.border),
             background:added?'rgba(34,197,94,0.12)':T.input,color:added?'#22c55e':T.text,
-            fontSize:12,cursor:added?'default':'pointer',fontWeight:600}}>
-            {added?'&#x2713; Added to Catalogue':'&#x1F4CB; Add to Catalogue'}
-          </button>
+            fontSize:12,cursor:added?'default':'pointer',fontWeight:600}}
+            dangerouslySetInnerHTML={{__html:added?'&#x2713; Added to Catalogue':'&#x1F4CB; Add to Catalogue'}}/>
         </div>
         {showForm&&!added&&(
           <div style={{marginTop:10,padding:12,background:T.surface,borderRadius:8}}>
