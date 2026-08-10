@@ -1,6 +1,6 @@
 import React from 'react';
 import { INDOOR_PHOTOS, INDOOR_WIKI_SLUGS, STATIC_PHOTO_URLS, WIKI_SLUGS } from '../data/plants.js';
-import { ThemeCtx, URG_COLOR, addPhotoToHistory, feedInterval, fmtDate, getCustomPhoto, getUrgency, isFloweringNow, plantCategory, repotApplicable, resizeImageToDataURL, useIsMobile, waterInterval } from '../utils.js';
+import { ThemeCtx, URG_COLOR, addPhotoToHistory, feedInterval, fmtDate, getCustomPhoto, getUrgency, isFloweringNow, plantCategory, repotApplicable, resizeImageToDataURL, useIsMobile, waterInterval, wikiThumb } from '../utils.js';
 
 export function CoverSlideshow({allPlants}){
   const slides=React.useMemo(()=>{
@@ -35,12 +35,12 @@ export function CoverSlideshow({allPlants}){
   const prev=slides[(idx-1+slides.length)%slides.length];
   return(<>
     {/* outgoing slide */}
-    <img key={'p'+idx} src={prev.url} alt="" style={{
+    <img key={'p'+idx} src={wikiThumb(prev.url,1200)} alt="" style={{
       position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',
       filter:'brightness(0.48) saturate(1.15)',
       opacity:show?0:1,transition:'opacity 0.9s ease',pointerEvents:'none'}}/>
     {/* incoming slide — ken burns */}
-    <img key={'c'+idx} src={cur.url} alt="" style={{
+    <img key={'c'+idx} src={wikiThumb(cur.url,1200)} alt="" style={{
       position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',
       filter:'brightness(0.48) saturate(1.15)',
       opacity:show?1:0,transition:'opacity 0.9s ease',
@@ -102,7 +102,7 @@ export function PhotoCard({src, loading, name, onZoom, onUpload}){
       {loading&&<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
         <div style={{width:24,height:24,border:'2px solid '+T.borderMid,borderTopColor:T.accent,borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
       </div>}
-      {src&&<img src={src} alt={name} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover',display:loading?'none':'block'}} onLoad={e=>e.target.style.display='block'} onError={e=>e.target.style.display='none'}/>}
+      {src&&<img src={wikiThumb(src,400)} alt={name} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover',display:loading?'none':'block'}} onLoad={e=>e.target.style.display='block'} onError={e=>e.target.style.display='none'}/>}
       {onZoom&&src&&<div style={{position:'absolute',top:6,right:6,background:'rgba(0,0,0,0.55)',borderRadius:'50%',width:26,height:26,display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:'#fff',pointerEvents:'none'}}>&#x2295;</div>}
       {onUpload&&<>
         <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={handleFile}/>
@@ -375,7 +375,7 @@ export function AttentionCard({plant, careLog, onLog, onSelect}){
       background:T.card,borderRadius:10,border:'1px solid rgba(239,68,68,0.3)',
       borderLeft:'3px solid #ef4444'}}>
       <div style={{width:44,height:44,borderRadius:8,overflow:'hidden',background:T.surface,flexShrink:0}}>
-        {photo&&<img src={photo} alt={plant.name} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
+        {photo&&<img src={wikiThumb(photo,100)} alt={plant.name} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
       </div>
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontWeight:600,fontSize:13,color:T.text,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{plant.name}</div>

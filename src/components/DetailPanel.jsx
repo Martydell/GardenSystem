@@ -2,7 +2,7 @@ import React from 'react';
 import { CareActionsBar, CompanionPanel, HarvestLog, PestNotes } from './Modals.jsx';
 import { CareHistorySparkline } from './PlantCards.jsx';
 import { INDOOR_PHOTOS, STATIC_PHOTO_URLS, TAG_C } from '../data/plants.js';
-import { STORAGE_INFO, ThemeCtx, addPhotoToHistory, badgeForType, fmtDate, getCustomPhoto, getPhotoHistory, isFloweringNow, plantCategory, removePhotoFromHistory, repotSeason, resizeImageToDataURL, useIsMobile } from '../utils.js';
+import { STORAGE_INFO, ThemeCtx, addPhotoToHistory, badgeForType, fmtDate, getCustomPhoto, getPhotoHistory, isFloweringNow, plantCategory, removePhotoFromHistory, repotSeason, resizeImageToDataURL, useIsMobile, wikiThumb } from '../utils.js';
 
 export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes, harvests, onAddNote, onAddHarvest, careHistory, pestLog, onPest, zoneLabels=[], isArchived=false, onToggleArchive, onDelete}){
   const T = React.useContext(ThemeCtx);
@@ -62,7 +62,7 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
         <div style={{position:'relative',height:200,overflow:'hidden',borderRadius:'16px 16px 0 0',
           background:T.surface,cursor:photo?'zoom-in':'default'}}
           onClick={photo?()=>onPhotoZoom(photo):undefined}>
-          {photo&&<img src={photo} alt={plant.name} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
+          {photo&&<img src={wikiThumb(photo,800)} alt={plant.name} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
           {plant.medicinal&&<div style={{position:'absolute',top:12,left:12,background:'#10b981',
             color:'#fff',fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:5}}>&#x271A; MEDICINAL</div>}
           {isArchived&&<div style={{position:'absolute',top:plant.medicinal?46:12,left:12,background:'rgba(107,114,128,0.9)',
@@ -87,7 +87,7 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
               <button key={h.ts||'legacy'} onClick={()=>setHistoryOpenAt(i)} title={h.ts?fmtDate(h.ts):'Earlier'}
                 style={{flexShrink:0,width:44,height:44,borderRadius:6,overflow:'hidden',padding:0,cursor:'pointer',
                   border:'1px solid '+T.border,background:T.surface}}>
-                <img src={h.url} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                <img src={wikiThumb(h.url,100)} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
               </button>
             ))}
           </div>

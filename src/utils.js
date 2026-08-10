@@ -133,6 +133,25 @@ export const URG_COLOR = { overdue:'#ef4444', soon:'#f59e0b', ok:'#22c55e', unse
 
 export function plantCategory(p){ const id=String(p.id); return id.startsWith('h')?'hydro':id.startsWith('i')?'indoor':id.startsWith('p')?'produce':'outdoor'; }
 
+// Wikimedia only serves direct/hotlinked thumbnail requests at these fixed widths —
+// anything else gets rejected with a 400 (see mediawiki.org/wiki/Common_thumbnail_sizes).
+const WIKI_THUMB_SIZES = [20,40,60,120,250,330,500,960,1280,1920,3840];
+
+// Rewrites a full-resolution Wikimedia Commons original (often 2000px+) — or an
+// already-thumbnailed URL pinned to some other (often huge) size — to a thumbnail
+// at the nearest allowed size at or above the given width. Cards/thumbnails don't
+// need the source resolution. Non-Wikimedia URLs (local /photos, data: URLs) pass
+// through unchanged.
+export function wikiThumb(url,width=400){
+  if(!url) return url;
+  let m = url.match(/^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/thumb\/([0-9a-f])\/([0-9a-f]{2})\/([^/]+)\/\d+px-[^/]+$/i);
+  if(!m) m = url.match(/^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/([0-9a-f])\/([0-9a-f]{2})\/([^/]+)$/i);
+  if(!m) return url;
+  const [,d1,d2,filename] = m;
+  const snapped = WIKI_THUMB_SIZES.find(w=>w>=width) || WIKI_THUMB_SIZES[WIKI_THUMB_SIZES.length-1];
+  return `https://upload.wikimedia.org/wikipedia/commons/thumb/${d1}/${d2}/${filename}/${snapped}px-${filename}`;
+}
+
 export function getCustomPlants(){
   try{ return JSON.parse(localStorage.getItem('custom-plants')||'[]'); }catch{ return []; }
 }

@@ -1,6 +1,6 @@
 import React from 'react';
 import { INDOOR_PHOTOS, STATIC_PHOTO_URLS } from '../data/plants.js';
-import { ThemeCtx, getCustomPhoto, getUrgency, plantCategory, resizeImageToDataURL } from '../utils.js';
+import { ThemeCtx, getCustomPhoto, getUrgency, plantCategory, resizeImageToDataURL, wikiThumb } from '../utils.js';
 
 export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPos,defaultText,allPlants,careLog,onSelect,fullHeight=false,highlightPlantId=null}){
   const T=React.useContext(ThemeCtx);
@@ -275,7 +275,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                   border:'1px solid '+(isHighlighted?'#22c55e':T.border),borderLeft:'3px solid '+col,
                   boxShadow:isHighlighted?'0 0 0 2px rgba(34,197,94,0.5)':'none',opacity:dragId===String(p.id)?.5:1}}>
                 <div style={{width:28,height:28,borderRadius:5,overflow:'hidden',flexShrink:0,background:T.surface}}>
-                  {ph&&<img src={ph} alt={p.name} style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
+                  {ph&&<img src={wikiThumb(ph,80)} alt={p.name} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
                 </div>
                 <div style={{fontSize:11,fontWeight:600,color:T.text,lineHeight:1.2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{p.name}</div>
                 {cnt>0&&<div style={{background:T.green,color:'#fff',borderRadius:'50%',width:16,height:16,fontSize:9,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700}}>{cnt}</div>}
@@ -596,7 +596,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                     {/* Paint colour tint on painted cells (shows even with plant) */}
                     {!isDisabled&&paintC&&plant&&<div style={{position:'absolute',inset:0,background:paintC,opacity:0.22,zIndex:0,pointerEvents:'none'}}/>}
                     {/* Single-plant cell: full photo + name */}
-                    {!isDisabled&&!multi&&ph&&plant&&<img src={ph} alt={plant.name} style={{width:'100%',height:'100%',objectFit:'cover',position:'relative',zIndex:1}}/>}
+                    {!isDisabled&&!multi&&ph&&plant&&<img src={wikiThumb(ph,200)} alt={plant.name} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover',position:'relative',zIndex:1}}/>}
                     {!isDisabled&&!multi&&plant&&<div style={{position:'absolute',bottom:0,left:0,right:0,zIndex:2,
                       background:'linear-gradient(transparent,rgba(0,0,0,.82))',padding:'16px 3px 4px',
                       fontSize:9,color:'#fff',fontWeight:700,textAlign:'center',lineHeight:1.2}}>
@@ -641,7 +641,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                               style={{position:'relative',flex:'1 1 0',minWidth:0,borderRadius:3,overflow:'hidden',
                                 border:'1px solid '+pcol,cursor:mode==='place'?'grab':'default',
                                 background:T.surface}}>
-                              {pph&&<img src={pph} alt={p.name} style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
+                              {pph&&<img src={wikiThumb(pph,80)} alt={p.name} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
                               {pU==='overdue'&&<div style={{position:'absolute',top:1,left:1,background:'#ef4444',color:'#fff',
                                 borderRadius:'50%',width:10,height:10,fontSize:7,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900}}>!</div>}
                             </div>
