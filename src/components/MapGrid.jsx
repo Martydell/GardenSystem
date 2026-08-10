@@ -1,4 +1,5 @@
 import React from 'react';
+import { OBJECT_TYPES } from '../data/objects.js';
 import { INDOOR_PHOTOS, STATIC_PHOTO_URLS } from '../data/plants.js';
 import { ThemeCtx, getCustomPhoto, getUrgency, plantCategory, resizeImageToDataURL, wikiThumb } from '../utils.js';
 
@@ -19,6 +20,9 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
       }
       return defaultPos||{};
     }catch{return defaultPos||{};}
+  });
+  const [objects,setObjects]=React.useState(()=>{
+    try{return JSON.parse(localStorage.getItem(storageKey+'-objects')||'{}');}catch{return {};}
   });
   const [dragId,setDragId]=React.useState(null);
   const clickTimerRef=React.useRef(null);
@@ -211,6 +215,31 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
     save(n);
   }
 
+  // Objects (furniture, heaters, etc.) — a parallel, simpler placement layer to plants:
+  // one object per cell, no multi-merge. Mutually exclusive with a plant in the same cell.
+  function saveObjects(o){setObjects(o);try{localStorage.setItem(storageKey+'-objects',JSON.stringify(o));}catch{}}
+  function placeObjectAt(typeId,x,y,fromCell=null){
+    const key=`${x},${y}`;
+    const next={...objects,[key]:typeId};
+    if(fromCell&&fromCell!==key) delete next[fromCell];
+    saveObjects(next);
+  }
+  function placeObjectInZone(typeId,zone){
+    const zp=getZonePos(zone);
+    for(let y=zp.y;y<zp.y+zone.h;y++){
+      for(let x=zp.x;x<zp.x+zone.w;x++){
+        const key=`${x},${y}`;
+        if(disabledCells.has(key))continue;
+        if(!pos[key]&&!objects[key]){ placeObjectAt(typeId,x,y); return; }
+      }
+    }
+    placeObjectAt(typeId,zp.x,zp.y);
+  }
+  function removeObjectCell(x,y){
+    const key=`${x},${y}`;
+    const n={...objects}; delete n[key]; saveObjects(n);
+  }
+
   function exportLayout(){
     const zonesOut=effectiveZones.map(z=>{const zp=getZonePos(z);return {id:z.id,label:z.label,x:zp.x,y:zp.y,w:z.w,h:z.h};});
     const plantsOut=Object.entries(pos).flatMap(([key,val])=>{
@@ -297,6 +326,24 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
             );
           })}
           {!sidebar.length&&<div style={{textAlign:'center',color:T.sub,fontSize:11,padding:'20px 4px'}}>No plants match filter</div>}
+        </div>
+        <div style={{padding:'8px',borderTop:'1px solid '+T.border,maxHeight:160,overflowY:'auto'}}>
+          <div style={{fontSize:10,color:T.sub,fontWeight:600,textTransform:'uppercase',letterSpacing:.5,marginBottom:6}}>
+            Objects
+          </div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+            {OBJECT_TYPES.map(o=>(
+              <div key={o.id} draggable
+                onDragStart={e=>{e.dataTransfer.setData('objectTypeId',o.id);setDragId('obj:'+o.id);}}
+                onDragEnd={()=>setDragId(null)}
+                style={{display:'flex',alignItems:'center',gap:4,padding:'4px 7px',borderRadius:20,
+                  border:'1px solid '+T.border,cursor:'grab',userSelect:'none',
+                  background:dragId==='obj:'+o.id?T.surface:T.input,
+                  opacity:dragId==='obj:'+o.id?.5:1,fontSize:10,color:T.text}}>
+                <span style={{fontSize:13}}>{o.icon}</span>{o.label}
+              </div>
+            ))}
+          </div>
         </div>
         <div style={{padding:'8px',borderTop:'1px solid '+T.border,maxHeight:220,overflowY:'auto'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
@@ -456,7 +503,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
             }
           </div>
         </div>
-        <div style={{overflowX:'auto',overflowY:'auto',flex:1}}
+        <div style={{overflowX:'auto',overflowY:'auto',flex:1,paddingTop:24}}
           onMouseUp={()=>{
             setIsPainting(false);
             if(mode==='zones'&&zoneDrawStart&&zoneDrawEnd){
@@ -506,6 +553,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                 const wUlvl=plant?getUrgency(plant,careLog,'watered').level:null;
                 const anyOverdue=multi&&plants.some(p=>getUrgency(p,careLog,'watered').level==='overdue');
                 const zone=getZn(x,y);
+                const obj=!plant&&objects[key]?OBJECT_TYPES.find(o=>o.id===objects[key]):null;
                 const paintC=cellColor[key]||null;
                 const labelTxt=cellText[key]||null;
                 const isEditingThis=editCell===key&&mode==='label';
@@ -521,12 +569,13 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                   :isHov&&mode==='place'?'2px dashed '+T.accent
                   :multi?'2px dashed '+T.accent
                   :plant?'2px solid '+col
+                  :obj?'2px solid '+T.sub
                   :paintC?'2px solid '+paintC
                   :(zone?'1px solid '+zone.border:'1px dashed '+T.border);
                 // Background
-                const bg=isDisabled?'rgba(0,0,0,0.35)':plant?'transparent':(paintC||zone?.col||T.surface);
+                const bg=isDisabled?'rgba(0,0,0,0.35)':(plant||obj)?'transparent':(paintC||zone?.col||T.surface);
                 // Cursor
-                const cursor=mode==='zones'?'crosshair':mode==='shape'?'pointer':mode==='paint'?'crosshair':mode==='label'?'text':plant?'grab':'default';
+                const cursor=mode==='zones'?'crosshair':mode==='shape'?'pointer':mode==='paint'?'crosshair':mode==='label'?'text':(plant||obj)?'grab':'default';
                 // Zone-draw selection highlight
                 const inDrawSel=zoneDrawStart&&zoneDrawEnd&&
                   x>=Math.min(zoneDrawStart.x,zoneDrawEnd.x)&&x<=Math.max(zoneDrawStart.x,zoneDrawEnd.x)&&
@@ -547,9 +596,17 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                       if(mode==='place')onSelect(plant);
                       else if(mode==='label'){setEditCell(key);setEditText(cellText[key]||'');}
                     }:undefined}
-                    draggable={mode==='place'&&!!plant&&!multi}
+                    draggable={mode==='place'&&(!!obj||(!!plant&&!multi))}
                     onDragStart={e=>{
-                      if(!plant||mode!=='place'||multi)return;
+                      if(mode!=='place')return;
+                      if(obj){
+                        e.dataTransfer.setData('objectTypeId',obj.id);
+                        e.dataTransfer.setData('fromCell',key);
+                        setDragId('obj:'+obj.id);
+                        e.stopPropagation();
+                        return;
+                      }
+                      if(!plant||multi)return;
                       e.dataTransfer.setData('plantId',String(plant.id));
                       e.dataTransfer.setData('fromCell',key);
                       setDragId(String(plant.id));
@@ -561,14 +618,18 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                     onDrop={e=>{
                       if(mode==='place'){
                         e.preventDefault();
-                        const pid=e.dataTransfer.getData('plantId');
                         const fromCell=e.dataTransfer.getData('fromCell');
+                        const otid=e.dataTransfer.getData('objectTypeId');
+                        if(otid){ placeObjectAt(otid,x,y,fromCell||null); setHov(null); return; }
+                        const pid=e.dataTransfer.getData('plantId');
                         if(pid)placeAt(pid,x,y,fromCell||null);
                         setHov(null);
                       }
                     }}
                     onDoubleClick={()=>{
-                      if(mode==='place'&&plant&&!isDisabled&&!multi){
+                      if(mode!=='place'||isDisabled)return;
+                      if(obj){ removeObjectCell(x,y); return; }
+                      if(plant&&!multi){
                         if(clickTimerRef.current){clearTimeout(clickTimerRef.current);clickTimerRef.current=null;}
                         removeCell(x,y);
                       }
@@ -606,6 +667,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                       :mode==='label'?'Click to edit label'
                       :multi?plants.length+' plants in this pot — click a tile to view, double-click a tile to remove it, drag another plant here to add more'
                       :plant?plant.name+' — drag to move, double-click to remove, drag another plant here to combine into one pot'
+                      :obj?obj.label+' — drag to move, double-click to remove'
                       :(zone?zone.label:'Drag a plant here')
                     }
                     style={{width:size,height:size,borderRadius:8,overflow:'hidden',position:'relative',
@@ -632,6 +694,17 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                     {!isDisabled&&!multi&&plant&&<div style={{position:'absolute',top:3,right:3,width:8,height:8,zIndex:3,borderRadius:'50%',background:col,boxShadow:'0 0 0 1px rgba(0,0,0,.35)'}}/>}
                     {!isDisabled&&!multi&&plant&&wUlvl==='overdue'&&<div style={{position:'absolute',top:3,left:3,zIndex:3,background:'#ef4444',color:'#fff',borderRadius:'50%',width:14,height:14,fontSize:9,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:900}}>!</div>}
                     {!isDisabled&&!multi&&plant&&paintC&&<div style={{position:'absolute',bottom:3,left:3,width:8,height:8,zIndex:4,borderRadius:'50%',background:paintC,border:'1px solid rgba(0,0,0,0.4)'}}/>}
+                    {/* Object cell (furniture, heater, etc.) — icon + label, no photo/urgency */}
+                    {!isDisabled&&obj&&(
+                      <div style={{position:'absolute',inset:0,zIndex:1,display:'flex',flexDirection:'column',
+                        alignItems:'center',justifyContent:'center',gap:2,background:T.surface}}>
+                        <span style={{fontSize:Math.round(size*0.32)}}>{obj.icon}</span>
+                        <span style={{fontSize:9,color:T.text,fontWeight:700,textAlign:'center',lineHeight:1.1,
+                          padding:'0 2px',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>
+                          {obj.label}
+                        </span>
+                      </div>
+                    )}
                     {/* Multi-plant (mixed pot) cell: mini-tiles in a single horizontal row, one per plant */}
                     {!isDisabled&&multi&&(
                       <div style={{position:'absolute',inset:0,display:'flex',
@@ -731,82 +804,105 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
               const isEditThis=editingZoneId===z.id;
               const zoneDropActive=mode==='place'&&!!dragId;
               return(
-                <div key={z.id}
-                  onDragOver={zoneDropActive?e=>{
-                    if(!e.dataTransfer.types.includes('plantid'))return;
-                    e.preventDefault();
-                    const rect=e.currentTarget.getBoundingClientRect();
-                    const hx=zp.x+Math.max(0,Math.min(z.w-1,Math.floor((e.clientX-rect.left)/(size+GP))));
-                    const hy=zp.y+Math.max(0,Math.min(z.h-1,Math.floor((e.clientY-rect.top)/(size+GP))));
-                    setHov({x:hx,y:hy});
-                  }:undefined}
-                  onDrop={zoneDropActive?e=>{
-                    if(!e.dataTransfer.types.includes('plantid'))return;
-                    e.preventDefault();
-                    const pid=e.dataTransfer.getData('plantId');
-                    const fromCell=e.dataTransfer.getData('fromCell');
-                    if(!pid)return;
-                    if(fromCell){
+                <React.Fragment key={z.id}>
+                  {/* Invisible full-rect drag/drop target — bounds match the zone exactly */}
+                  <div
+                    onDragOver={zoneDropActive?e=>{
+                      if(!e.dataTransfer.types.includes('plantid')&&!e.dataTransfer.types.includes('objecttypeid'))return;
+                      e.preventDefault();
                       const rect=e.currentTarget.getBoundingClientRect();
-                      const cx=zp.x+Math.max(0,Math.min(z.w-1,Math.floor((e.clientX-rect.left)/(size+GP))));
-                      const cy=zp.y+Math.max(0,Math.min(z.h-1,Math.floor((e.clientY-rect.top)/(size+GP))));
-                      placeAt(pid,cx,cy,fromCell);
-                    }else{
-                      placeInZone(pid,z);
-                    }
-                    setHov(null);
-                  }:undefined}
-                  style={{
+                      const hx=zp.x+Math.max(0,Math.min(z.w-1,Math.floor((e.clientX-rect.left)/(size+GP))));
+                      const hy=zp.y+Math.max(0,Math.min(z.h-1,Math.floor((e.clientY-rect.top)/(size+GP))));
+                      setHov({x:hx,y:hy});
+                    }:undefined}
+                    onDrop={zoneDropActive?e=>{
+                      if(!e.dataTransfer.types.includes('plantid')&&!e.dataTransfer.types.includes('objecttypeid'))return;
+                      e.preventDefault();
+                      const fromCell=e.dataTransfer.getData('fromCell');
+                      const otid=e.dataTransfer.getData('objectTypeId');
+                      if(otid){
+                        if(fromCell){
+                          const rect=e.currentTarget.getBoundingClientRect();
+                          const cx=zp.x+Math.max(0,Math.min(z.w-1,Math.floor((e.clientX-rect.left)/(size+GP))));
+                          const cy=zp.y+Math.max(0,Math.min(z.h-1,Math.floor((e.clientY-rect.top)/(size+GP))));
+                          placeObjectAt(otid,cx,cy,fromCell);
+                        }else{
+                          placeObjectInZone(otid,z);
+                        }
+                        setHov(null);
+                        return;
+                      }
+                      const pid=e.dataTransfer.getData('plantId');
+                      if(!pid)return;
+                      if(fromCell){
+                        const rect=e.currentTarget.getBoundingClientRect();
+                        const cx=zp.x+Math.max(0,Math.min(z.w-1,Math.floor((e.clientX-rect.left)/(size+GP))));
+                        const cy=zp.y+Math.max(0,Math.min(z.h-1,Math.floor((e.clientY-rect.top)/(size+GP))));
+                        placeAt(pid,cx,cy,fromCell);
+                      }else{
+                        placeInZone(pid,z);
+                      }
+                      setHov(null);
+                    }:undefined}
+                    style={{
+                      position:'absolute',
+                      left:zp.x*(size+GP),top:zp.y*(size+GP),
+                      width:z.w*(size+GP)-GP,height:z.h*(size+GP)-GP,
+                      pointerEvents:zoneDropActive?'auto':'none',
+                      zIndex:5}}/>
+                  {/* Visible zone label — external, sits just above the zone rectangle */}
+                  <div style={{
                     position:'absolute',
-                    left:zp.x*(size+GP),top:zp.y*(size+GP),
-                    width:z.w*(size+GP)-GP,height:z.h*(size+GP)-GP,
-                    pointerEvents:zoneDropActive?'auto':'none',
-                    display:'flex',alignItems:'flex-start',justifyContent:'center',
-                    paddingTop:6,zIndex:5}}>
-                  {editable?(
-                    <div style={{display:'flex',alignItems:'center',gap:4,
-                      background:'rgba(0,0,0,0.72)',borderRadius:5,padding:'3px 6px',
-                      maxWidth:'90%',backdropFilter:'blur(3px)',pointerEvents:'auto'}}>
-                      {isEditThis?(
-                        <input autoFocus value={editingZoneLabelVal}
-                          onChange={e=>setEditingZoneLabelVal(e.target.value)}
-                          onKeyDown={e=>{if(e.key==='Enter')saveZoneLabel(z.id,editingZoneLabelVal);if(e.key==='Escape')setEditingZoneId(null);}}
-                          onBlur={()=>saveZoneLabel(z.id,editingZoneLabelVal)}
-                          style={{width:80,padding:'2px 4px',borderRadius:3,border:'1px solid '+T.accent,
-                            background:T.input,color:T.text,fontSize:10}}/>
-                      ):(
-                        <span onClick={()=>{setEditingZoneId(z.id);setEditingZoneLabelVal(z.label);}}
-                          style={{color:'#fff',fontSize:10,fontWeight:700,cursor:'text',userSelect:'none',
-                            letterSpacing:.3,lineHeight:1.3}}>
-                          &#x270F; {z.label}
-                        </span>
-                      )}
-                      <button onMouseDown={e=>{e.preventDefault();e.stopPropagation();removeZone(z.id);}}
-                        aria-label={'Remove zone: '+z.label}
-                        style={{background:'rgba(239,68,68,0.85)',border:'none',borderRadius:3,
-                          color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',lineHeight:1,
-                          padding:'1px 4px',flexShrink:0}}>
-                        &#x2715;
-                      </button>
-                    </div>
-                  ):(
-                    <span
-                      draggable={draggable}
-                      onDragStart={draggable?e=>{
-                        e.dataTransfer.setData('zoneId',z.id);
-                        e.dataTransfer.effectAllowed='move';
-                        e.stopPropagation();
-                      }:undefined}
-                      style={{
-                      background:'rgba(0,0,0,.52)',color:'#fff',fontSize:10,fontWeight:700,
-                      borderRadius:4,padding:'2px 7px',letterSpacing:.3,backdropFilter:'blur(2px)',
-                      maxWidth:'90%',textAlign:'center',lineHeight:1.3,pointerEvents:draggable?'auto':'none',
-                      userSelect:'none',display:'flex',alignItems:'center',gap:4,cursor:draggable?'grab':'default'}}>
-                      {draggable&&<span style={{opacity:0.7,fontSize:12}}>&#x2B0C;</span>}
-                      {z.label}
-                    </span>
-                  )}
-                </div>
+                    left:zp.x*(size+GP),top:zp.y*(size+GP)-22,
+                    width:z.w*(size+GP)-GP,
+                    display:'flex',alignItems:'center',justifyContent:'center',
+                    zIndex:6,pointerEvents:'none'}}>
+                    {editable?(
+                      <div style={{display:'flex',alignItems:'center',gap:4,
+                        background:'rgba(0,0,0,0.72)',borderRadius:5,padding:'3px 6px',
+                        maxWidth:'90%',backdropFilter:'blur(3px)',pointerEvents:'auto'}}>
+                        {isEditThis?(
+                          <input autoFocus value={editingZoneLabelVal}
+                            onChange={e=>setEditingZoneLabelVal(e.target.value)}
+                            onKeyDown={e=>{if(e.key==='Enter')saveZoneLabel(z.id,editingZoneLabelVal);if(e.key==='Escape')setEditingZoneId(null);}}
+                            onBlur={()=>saveZoneLabel(z.id,editingZoneLabelVal)}
+                            style={{width:80,padding:'2px 4px',borderRadius:3,border:'1px solid '+T.accent,
+                              background:T.input,color:T.text,fontSize:10}}/>
+                        ):(
+                          <span onClick={()=>{setEditingZoneId(z.id);setEditingZoneLabelVal(z.label);}}
+                            style={{color:'#fff',fontSize:10,fontWeight:700,cursor:'text',userSelect:'none',
+                              letterSpacing:.3,lineHeight:1.3}}>
+                            &#x270F; {z.label}
+                          </span>
+                        )}
+                        <button onMouseDown={e=>{e.preventDefault();e.stopPropagation();removeZone(z.id);}}
+                          aria-label={'Remove zone: '+z.label}
+                          style={{background:'rgba(239,68,68,0.85)',border:'none',borderRadius:3,
+                            color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',lineHeight:1,
+                            padding:'1px 4px',flexShrink:0}}>
+                          &#x2715;
+                        </button>
+                      </div>
+                    ):(
+                      <span
+                        draggable={draggable}
+                        onDragStart={draggable?e=>{
+                          e.dataTransfer.setData('zoneId',z.id);
+                          e.dataTransfer.effectAllowed='move';
+                          e.stopPropagation();
+                        }:undefined}
+                        style={{
+                        background:T.card,color:T.text,fontSize:10,fontWeight:700,
+                        border:'1px solid '+z.border,
+                        borderRadius:4,padding:'2px 7px',letterSpacing:.3,
+                        maxWidth:'90%',textAlign:'center',lineHeight:1.3,pointerEvents:draggable?'auto':'none',
+                        userSelect:'none',display:'flex',alignItems:'center',gap:4,cursor:draggable?'grab':'default'}}>
+                        {draggable&&<span style={{opacity:0.7,fontSize:12}}>&#x2B0C;</span>}
+                        {z.label}
+                      </span>
+                    )}
+                  </div>
+                </React.Fragment>
               );
             })}
           </div>{/* end position:relative outer */}

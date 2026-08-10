@@ -1,0 +1,18 @@
+export const OBJECT_TYPES = [
+  {id:'furniture-set', label:'Furniture Set', icon:'🪑'},
+  {id:'bench', label:'Bench', icon:'🪵'},
+  {id:'table', label:'Table', icon:'🍽️'},
+  {id:'heater', label:'Patio Heater', icon:'🔥'},
+  {id:'pizza-oven', label:'Pizza Oven', icon:'🍕'},
+  {id:'bbq', label:'BBQ', icon:'🍖'},
+  {id:'spiral-stairs', label:'Spiral Stairs', icon:'🌀'},
+  {id:'water-feature', label:'Water Feature', icon:'⛲'},
+  {id:'planter', label:'Planter / Pot', icon:'🏺'},
+  {id:'shed', label:'Shed', icon:'🏚️'},
+  {id:'washing-line', label:'Washing Line', icon:'🧺'},
+  {id:'bin-store', label:'Bin Store', icon:'🗑️'},
+  {id:'lighting', label:'Lighting', icon:'💡'},
+  {id:'gate', label:'Gate', icon:'🚪'},
+  {id:'umbrella', label:'Parasol', icon:'⛱️'},
+  {id:'storage-box', label:'Storage Box', icon:'📦'},
+];
