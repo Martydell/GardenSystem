@@ -188,6 +188,20 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
     }
     save(next);
   }
+  // Drops a freshly-dragged (not yet placed) plant into the first free cell within
+  // a zone's bounds, so the user doesn't have to aim for one exact empty cell —
+  // falls back to the zone's top-left cell (merging into a pot) if it's completely full.
+  function placeInZone(pid,zone){
+    const zp=getZonePos(zone);
+    for(let y=zp.y;y<zp.y+zone.h;y++){
+      for(let x=zp.x;x<zp.x+zone.w;x++){
+        const key=`${x},${y}`;
+        if(disabledCells.has(key))continue;
+        if(!pos[key]){ placeAt(pid,x,y); return; }
+      }
+    }
+    placeAt(pid,zp.x,zp.y);
+  }
   function removeCell(x,y,pid=null){
     const key=`${x},${y}`;
     if(pid==null){ const n={...pos}; delete n[key]; save(n); return; }
@@ -702,13 +716,38 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
               const draggable=mode==='place';
               const editable=mode==='zones';
               const isEditThis=editingZoneId===z.id;
+              const zoneDropActive=mode==='place'&&!!dragId;
               return(
                 <div key={z.id}
+                  onDragOver={zoneDropActive?e=>{
+                    if(!e.dataTransfer.types.includes('plantid'))return;
+                    e.preventDefault();
+                    const rect=e.currentTarget.getBoundingClientRect();
+                    const hx=zp.x+Math.max(0,Math.min(z.w-1,Math.floor((e.clientX-rect.left)/(size+GP))));
+                    const hy=zp.y+Math.max(0,Math.min(z.h-1,Math.floor((e.clientY-rect.top)/(size+GP))));
+                    setHov({x:hx,y:hy});
+                  }:undefined}
+                  onDrop={zoneDropActive?e=>{
+                    if(!e.dataTransfer.types.includes('plantid'))return;
+                    e.preventDefault();
+                    const pid=e.dataTransfer.getData('plantId');
+                    const fromCell=e.dataTransfer.getData('fromCell');
+                    if(!pid)return;
+                    if(fromCell){
+                      const rect=e.currentTarget.getBoundingClientRect();
+                      const cx=zp.x+Math.max(0,Math.min(z.w-1,Math.floor((e.clientX-rect.left)/(size+GP))));
+                      const cy=zp.y+Math.max(0,Math.min(z.h-1,Math.floor((e.clientY-rect.top)/(size+GP))));
+                      placeAt(pid,cx,cy,fromCell);
+                    }else{
+                      placeInZone(pid,z);
+                    }
+                    setHov(null);
+                  }:undefined}
                   style={{
                     position:'absolute',
                     left:zp.x*(size+GP),top:zp.y*(size+GP),
                     width:z.w*(size+GP)-GP,height:z.h*(size+GP)-GP,
-                    pointerEvents:'none',
+                    pointerEvents:zoneDropActive?'auto':'none',
                     display:'flex',alignItems:'flex-start',justifyContent:'center',
                     paddingTop:6,zIndex:5}}>
                   {editable?(

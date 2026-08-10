@@ -374,8 +374,49 @@ export function Catalogue(){
   // Reused for a zone's Plants tab and Overview's global browse. Every card gets the
   // per-card "move to zone" control; `overviewMode` additionally enables drag-to-zone
   // (the drop-target strip it targets only exists on the Overview page).
-  function renderPlantSections(list, keyPrefix, overviewMode=false){
+  function renderPlantSections(list, keyPrefix, overviewMode=false, groupByCategory=true){
     const out = filterPlants(list);
+
+    const renderCard = (p,i) => {
+      const Card=CARD_BY_TYPE[plantCategory(p)];
+      const pid=String(p.id), isSel=selectedIds.has(pid);
+      return (
+        <div key={p.id} style={{position:'relative'}}>
+          <button onClick={e=>{e.stopPropagation();toggleSelect(p.id);}}
+            title={isSel?'Deselect':'Select for bulk move'}
+            style={{position:'absolute',top:-6,right:-6,zIndex:6,width:24,height:24,borderRadius:'50%',
+              border:'2px solid '+(isSel?'#22c55e':'#fff'),
+              background:isSel?'#22c55e':'rgba(0,0,0,0.4)',
+              color:'#fff',fontSize:13,fontWeight:900,cursor:'pointer',display:'flex',
+              alignItems:'center',justifyContent:'center',boxShadow:'0 1px 4px rgba(0,0,0,0.5)'}}>
+            {isSel?'✓':''}
+          </button>
+          <Card plant={p} onSelect={setSelected} careLog={careLog} onLog={logCare}
+            onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}
+            onDragStart={overviewMode?handleCardDragStart:undefined}
+            onReassign={reassignPlant} zoneOptions={AREAS}
+            zoneLabels={plantZoneMap[pid]||[]} archived={archivedIds.has(pid)}/>
+        </div>
+      );
+    };
+
+    if(!groupByCategory){
+      const flat=[...out].sort((a,b)=>
+        (archivedIds.has(String(a.id))?1:0)-(archivedIds.has(String(b.id))?1:0)
+        || a.name.localeCompare(b.name));
+      if(!flat.length) return (
+        <div style={{textAlign:'center',padding:60,color:T.sub,fontSize:16}}>
+          No plants match your search.
+        </div>
+      );
+      return (
+        <div key={keyPrefix+'flat'+search+tags.join()} className="cards-grid" style={{display:'grid',
+          gridTemplateColumns:M?'repeat(2,1fr)':'repeat(auto-fill,minmax(200px,1fr))',gap:M?8:16,marginBottom:8}}>
+          {flat.map(renderCard)}
+        </div>
+      );
+    }
+
     const byType = {
       outdoor: out.filter(p=>plantCategory(p)==='outdoor'),
       indoor:  out.filter(p=>plantCategory(p)==='indoor'),
@@ -390,7 +431,6 @@ export function Catalogue(){
       <>
         {['outdoor','indoor','hydro','produce'].map(t=>{
           const arr=byType[t]; if(!arr.length) return null;
-          const Card=CARD_BY_TYPE[t];
           const collapseKey=keyPrefix+t;
           return (
             <React.Fragment key={t}>
@@ -398,27 +438,7 @@ export function Catalogue(){
               {!collapsedTypes.has(collapseKey)&&
               <div key={keyPrefix+t+search+tags.join()} className="cards-grid" style={{display:'grid',
                 gridTemplateColumns:M?'repeat(2,1fr)':'repeat(auto-fill,minmax(200px,1fr))',gap:M?8:16,marginBottom:8}}>
-                {arr.map((p,i)=>{
-                  const pid=String(p.id), isSel=selectedIds.has(pid);
-                  return (
-                    <div key={p.id} style={{position:'relative'}}>
-                      <button onClick={e=>{e.stopPropagation();toggleSelect(p.id);}}
-                        title={isSel?'Deselect':'Select for bulk move'}
-                        style={{position:'absolute',top:-6,right:-6,zIndex:6,width:24,height:24,borderRadius:'50%',
-                          border:'2px solid '+(isSel?'#22c55e':'#fff'),
-                          background:isSel?'#22c55e':'rgba(0,0,0,0.4)',
-                          color:'#fff',fontSize:13,fontWeight:900,cursor:'pointer',display:'flex',
-                          alignItems:'center',justifyContent:'center',boxShadow:'0 1px 4px rgba(0,0,0,0.5)'}}>
-                        {isSel?'✓':''}
-                      </button>
-                      <Card plant={p} onSelect={setSelected} careLog={careLog} onLog={logCare}
-                        onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}
-                        onDragStart={overviewMode?handleCardDragStart:undefined}
-                        onReassign={reassignPlant} zoneOptions={AREAS}
-                        zoneLabels={plantZoneMap[pid]||[]} archived={archivedIds.has(pid)}/>
-                    </div>
-                  );
-                })}
+                {arr.map(renderCard)}
               </div>}
             </React.Fragment>
           );
@@ -742,7 +762,7 @@ export function Catalogue(){
           <div style={{paddingTop:20}}>
             {searchBar}
             {selectionBar}
-            {renderPlantSections(zonePlants,area+'-')}
+            {renderPlantSections(zonePlants,area+'-',false,false)}
           </div>
         )}
 
