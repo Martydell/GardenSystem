@@ -303,7 +303,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
             <div style={{fontSize:10,color:T.sub,fontWeight:600,textTransform:'uppercase',letterSpacing:.5}}>
               Zones ({effectiveZones.length})
             </div>
-            <button onClick={()=>setMode('zones')} title="Draw a new zone on the grid"
+            <button onClick={()=>setMode('zones')} title="Draw a new zone on the grid" aria-label="Draw a new zone on the grid"
               style={{padding:'2px 7px',borderRadius:20,border:'1px solid '+T.border,cursor:'pointer',
                 fontSize:11,background:mode==='zones'?T.accent:T.input,
                 color:mode==='zones'?'#fff':T.sub,fontWeight:700,lineHeight:1.4}}>
@@ -328,7 +328,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                   }}
                   onBlur={()=>saveZoneLabel(z.id,editingZoneLabelVal)}
                   style={{flex:1,padding:'2px 5px',borderRadius:4,border:'1px solid '+T.accent,
-                    background:T.input,color:T.text,fontSize:10,outline:'none',minWidth:0}}/>
+                    background:T.input,color:T.text,fontSize:10,minWidth:0}}/>
               ):(
                 <span onClick={()=>{setEditingZoneId(z.id);setEditingZoneLabelVal(z.label);}}
                   title="Click to rename"
@@ -338,12 +338,12 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                 </span>
               )}
               <button onClick={()=>{setEditingZoneId(z.id);setEditingZoneLabelVal(z.label);}}
-                title="Rename zone"
+                title="Rename zone" aria-label={'Rename zone: '+z.label}
                 style={{padding:'1px 3px',border:'none',background:'transparent',
                   color:T.sub,cursor:'pointer',fontSize:10,flexShrink:0,lineHeight:1}}>
                 &#x270F;
               </button>
-              <button onClick={()=>removeZone(z.id)} title="Remove zone"
+              <button onClick={()=>removeZone(z.id)} title="Remove zone" aria-label={'Remove zone: '+z.label}
                 style={{padding:'1px 4px',border:'none',background:'transparent',
                   color:'rgba(239,68,68,0.7)',cursor:'pointer',fontSize:11,lineHeight:1,
                   flexShrink:0,fontWeight:700}}>
@@ -531,9 +531,22 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                 const inDrawSel=zoneDrawStart&&zoneDrawEnd&&
                   x>=Math.min(zoneDrawStart.x,zoneDrawEnd.x)&&x<=Math.max(zoneDrawStart.x,zoneDrawEnd.x)&&
                   y>=Math.min(zoneDrawStart.y,zoneDrawEnd.y)&&y<=Math.max(zoneDrawStart.y,zoneDrawEnd.y);
+                // Keyboard access: only the two modes with a single well-defined click action
+                // (open detail on a placed plant / edit a cell's label) get button semantics —
+                // paint/shape/zones are inherently drag-based and out of scope for this pass.
+                const keyboardActionable=(mode==='place'&&plant&&!isDisabled&&!multi)||(mode==='label'&&!isDisabled);
 
                 return(
                   <div key={key}
+                    role={keyboardActionable?'button':undefined}
+                    tabIndex={keyboardActionable?0:undefined}
+                    aria-label={keyboardActionable?(mode==='place'?'View '+plant.name:'Edit label for cell'):undefined}
+                    onKeyDown={keyboardActionable?e=>{
+                      if(e.key!=='Enter'&&e.key!==' ')return;
+                      e.preventDefault();
+                      if(mode==='place')onSelect(plant);
+                      else if(mode==='label'){setEditCell(key);setEditText(cellText[key]||'');}
+                    }:undefined}
                     draggable={mode==='place'&&!!plant&&!multi}
                     onDragStart={e=>{
                       if(!plant||mode!=='place'||multi)return;
@@ -695,7 +708,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                           }}
                           onBlur={()=>saveCellText(key,editText)}
                           style={{width:'100%',padding:'3px 5px',borderRadius:4,border:'1px solid '+T.accent,
-                            background:T.input,color:T.text,fontSize:10,outline:'none',boxSizing:'border-box',textAlign:'center'}}/>
+                            background:T.input,color:T.text,fontSize:10,boxSizing:'border-box',textAlign:'center'}}/>
                         <div style={{display:'flex',gap:4,marginTop:3}}>
                           <button onMouseDown={e=>{e.preventDefault();saveCellText(key,'');}}
                             style={{fontSize:8,padding:'2px 5px',borderRadius:3,border:'none',
@@ -760,7 +773,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                           onKeyDown={e=>{if(e.key==='Enter')saveZoneLabel(z.id,editingZoneLabelVal);if(e.key==='Escape')setEditingZoneId(null);}}
                           onBlur={()=>saveZoneLabel(z.id,editingZoneLabelVal)}
                           style={{width:80,padding:'2px 4px',borderRadius:3,border:'1px solid '+T.accent,
-                            background:T.input,color:T.text,fontSize:10,outline:'none'}}/>
+                            background:T.input,color:T.text,fontSize:10}}/>
                       ):(
                         <span onClick={()=>{setEditingZoneId(z.id);setEditingZoneLabelVal(z.label);}}
                           style={{color:'#fff',fontSize:10,fontWeight:700,cursor:'text',userSelect:'none',
@@ -769,6 +782,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                         </span>
                       )}
                       <button onMouseDown={e=>{e.preventDefault();e.stopPropagation();removeZone(z.id);}}
+                        aria-label={'Remove zone: '+z.label}
                         style={{background:'rgba(239,68,68,0.85)',border:'none',borderRadius:3,
                           color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',lineHeight:1,
                           padding:'1px 4px',flexShrink:0}}>
@@ -805,7 +819,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
         background:'rgba(0,0,0,0.55)'}}
         onMouseDown={e=>{if(e.target===e.currentTarget){setPendingZoneRect(null);}}}>
         <div style={{background:T.card,border:'1px solid '+T.border,borderRadius:14,padding:20,
-          width:320,boxShadow:'0 8px 32px rgba(0,0,0,0.5)'}}>
+          width:320,boxShadow:T.shadowLg}}>
           <div style={{fontWeight:700,fontSize:15,color:T.text,marginBottom:14}}>
             &#x1F5FA;&#xFE0F; New Zone ({pendingZoneRect.w}&times;{pendingZoneRect.h} cells)
           </div>
@@ -815,7 +829,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
               onKeyDown={e=>{if(e.key==='Enter')confirmNewZone();if(e.key==='Escape')setPendingZoneRect(null);}}
               placeholder="e.g. Sunny corner"
               style={{width:'100%',padding:'7px 10px',borderRadius:7,border:'1px solid '+T.border,
-                background:T.input,color:T.text,fontSize:13,outline:'none',boxSizing:'border-box'}}/>
+                background:T.input,color:T.text,fontSize:13,boxSizing:'border-box'}}/>
           </div>
           <div style={{marginBottom:16}}>
             <label style={{fontSize:12,color:T.sub,display:'block',marginBottom:6}}>Colour</label>

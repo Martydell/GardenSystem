@@ -27,7 +27,7 @@ function ResultCard({result, onAddWish, onAddCustomPlant, T}){
   return (
     <div style={{background:T.card,border:'1px solid '+T.border,borderRadius:12,padding:14,marginBottom:12,display:'flex',gap:12}}>
       <div style={{width:64,height:64,borderRadius:8,overflow:'hidden',background:T.surface,flexShrink:0}}>
-        {result.image&&<img src={result.image} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
+        {result.image&&<img src={result.image} alt={result.commonNames[0]||result.scientificName} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
       </div>
       <div style={{flex:1,minWidth:0}}>
         <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:2}}>
@@ -139,7 +139,7 @@ export function IdentifyView({onAddWish, onAddCustomPlant}){
 
       {photo&&(
         <div style={{width:160,height:160,borderRadius:10,overflow:'hidden',background:T.surface,marginBottom:16}}>
-          <img src={photo} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+          <img src={photo} alt="Uploaded photo for identification" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
         </div>
       )}
 

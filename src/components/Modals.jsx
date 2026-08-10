@@ -2,7 +2,7 @@ import React from 'react';
 import { COMPANIONS, TAG_C } from '../data/plants.js';
 import { ThemeCtx, fmtDate, pruneApplicable, repotApplicable } from '../utils.js';
 
-export function PhotoLightbox({src, onClose}){
+export function PhotoLightbox({src, name='', onClose}){
   React.useEffect(()=>{
     const h=e=>{if(e.key==='Escape')onClose();};
     window.addEventListener('keydown',h);
@@ -11,10 +11,10 @@ export function PhotoLightbox({src, onClose}){
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.92)',
       zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',cursor:'zoom-out'}}>
-      <img src={src} alt="" onClick={e=>e.stopPropagation()} style={{
+      <img src={src} alt={name} onClick={e=>e.stopPropagation()} style={{
         maxWidth:'90vw',maxHeight:'90vh',objectFit:'contain',borderRadius:8,
-        boxShadow:'0 8px 40px rgba(0,0,0,0.8)'}}/>
-      <button onClick={onClose} style={{position:'fixed',top:16,right:20,background:'none',
+        boxShadow:'0 8px 30px rgba(0,0,0,0.5)'}}/>
+      <button onClick={onClose} aria-label="Close photo" style={{position:'fixed',top:16,right:20,background:'none',
         border:'none',color:'#fff',fontSize:28,cursor:'pointer',lineHeight:1}}>&#x2715;</button>
     </div>
   );
@@ -128,7 +128,7 @@ export function PestNotes({plantId, notes, onAdd}){
           onKeyDown={e=>e.key==='Enter'&&submit()}
           placeholder="Add observation..."
           style={{flex:1,padding:'6px 10px',background:T.input,border:'1px solid '+T.border,
-            borderRadius:6,color:T.text,fontSize:12,outline:'none'}}/>
+            borderRadius:6,color:T.text,fontSize:12}}/>
         <button onClick={submit} style={{padding:'6px 12px',background:T.green,border:'none',
           borderRadius:6,color:'#fff',fontSize:12,cursor:'pointer',fontWeight:600}}>Add</button>
       </div>
@@ -162,11 +162,11 @@ export function HarvestLog({plant, harvests, onAdd}){
       <div style={{display:'flex',gap:6,marginBottom:6,flexWrap:'wrap'}}>
         <input value={qty} onChange={e=>setQty(e.target.value)} placeholder="Quantity (e.g. 200g)"
           style={{flex:'1 1 100px',padding:'6px 10px',background:T.input,border:'1px solid '+T.border,
-            borderRadius:6,color:T.text,fontSize:12,outline:'none'}}/>
+            borderRadius:6,color:T.text,fontSize:12}}/>
         <input value={note} onChange={e=>setNote(e.target.value)} placeholder="Notes (optional)"
           onKeyDown={e=>e.key==='Enter'&&submit()}
           style={{flex:'2 1 140px',padding:'6px 10px',background:T.input,border:'1px solid '+T.border,
-            borderRadius:6,color:T.text,fontSize:12,outline:'none'}}/>
+            borderRadius:6,color:T.text,fontSize:12}}/>
         <button onClick={submit} style={{padding:'6px 12px',background:'#d97706',border:'none',
           borderRadius:6,color:'#fff',fontSize:12,cursor:'pointer',fontWeight:600}}>Log</button>
       </div>
@@ -195,10 +195,10 @@ export function PestLogModal({plant, pestLog, onLog, onResolve, onClose}){
     <div style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(0,0,0,0.72)',
       display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div style={{background:T.card,borderRadius:16,padding:20,maxWidth:440,width:'100%',
-        boxShadow:'0 20px 60px rgba(0,0,0,0.5)',maxHeight:'82vh',overflowY:'auto'}}>
+        boxShadow:T.shadowLg,maxHeight:'82vh',overflowY:'auto'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
           <div style={{fontWeight:700,fontSize:15,color:T.text}}>&#x1F41B; Pest &amp; Disease — {plant.name}</div>
-          <button onClick={onClose} style={{background:'none',border:'none',color:T.sub,fontSize:20,cursor:'pointer'}}>&#x2715;</button>
+          <button onClick={onClose} aria-label="Close" style={{background:'none',border:'none',color:T.sub,fontSize:20,cursor:'pointer'}}>&#x2715;</button>
         </div>
         {active.length>0&&(
           <div style={{marginBottom:14}}>
@@ -261,7 +261,7 @@ export function BulkWaterModal({plants, onConfirm, onClose}){
     <div style={{position:'fixed',inset:0,zIndex:3000,background:'rgba(0,0,0,0.72)',
       display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
       <div style={{background:T.card,borderRadius:16,padding:20,maxWidth:380,width:'100%',
-        boxShadow:'0 20px 60px rgba(0,0,0,0.5)'}}>
+        boxShadow:T.shadowLg}}>
         <div style={{fontWeight:700,fontSize:16,color:T.text,marginBottom:8}}>&#x1F4A7; Water All Overdue</div>
         <p style={{color:T.sub,fontSize:13,marginBottom:14}}>
           Mark {plants.length} plant{plants.length!==1?'s':''} as watered right now?
@@ -293,13 +293,13 @@ export function FiltersDrawer({allTags, tags, onToggle, onClear, onClose}){
       display:'flex',alignItems:'flex-end',justifyContent:'center',padding:0}}>
       <div onClick={e=>e.stopPropagation()} style={{background:T.card,borderRadius:'16px 16px 0 0',
         padding:20,maxWidth:640,width:'100%',maxHeight:'75vh',overflowY:'auto',
-        boxShadow:'0 -8px 40px rgba(0,0,0,0.5)'}}>
+        boxShadow:T.shadowLg}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
           <div style={{fontWeight:700,fontSize:16,color:T.text}}>&#x1F50D; Filters {tags.length>0&&`(${tags.length})`}</div>
           <div style={{display:'flex',gap:10,alignItems:'center'}}>
             {tags.length>0&&<button onClick={onClear} style={{background:'none',border:'none',
               color:'#ef4444',fontSize:12,fontWeight:600,cursor:'pointer'}}>Clear all</button>}
-            <button onClick={onClose} style={{background:'none',border:'none',color:T.sub,
+            <button onClick={onClose} aria-label="Close" style={{background:'none',border:'none',color:T.sub,
               fontSize:20,cursor:'pointer'}}>&#x2715;</button>
           </div>
         </div>

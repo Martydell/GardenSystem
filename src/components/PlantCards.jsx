@@ -107,7 +107,7 @@ export function PhotoCard({src, loading, name, onZoom, onUpload}){
       {onUpload&&<>
         <input ref={fileRef} type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={handleFile}/>
         <button onClick={e=>{e.stopPropagation();fileRef.current&&fileRef.current.click();}}
-          title="Upload your own photo"
+          title="Upload your own photo" aria-label="Upload your own photo"
           style={{position:'absolute',top:6,left:6,background:'rgba(0,0,0,0.55)',border:'none',borderRadius:'50%',
             width:26,height:26,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,
             color:'#fff',cursor:'pointer',padding:0}}>&#x1F4F7;</button>
@@ -190,6 +190,8 @@ export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeCo
 
   return (
     <div className="plant-card" style={cardStyle} onClick={()=>setFlipped(f=>!f)}
+      role="button" tabIndex={0} aria-label={'Flip '+plant.name+' card'}
+      onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setFlipped(f=>!f);}}}
       draggable={!!onDragStart}
       onDragStart={onDragStart?e=>onDragStart(e,plant):undefined}>
       <div style={innerStyle}>
@@ -198,11 +200,13 @@ export function PlantCard({plant, onSelect, photo, loading=false, badge, badgeCo
           <PhotoCard src={displayPhoto} loading={loading&&!customPhoto} name={plant.name} onZoom={onPhotoZoom} onUpload={handleUpload}/>
           {plant.medicinal&&<div style={{position:'absolute',top:8,left:8,background:'#10b981',color:'#fff',
             fontSize:10,fontWeight:700,padding:'2px 6px',borderRadius:4,letterSpacing:0.5}}>&#x271A; MEDICINAL</div>}
-          {activePests>0&&onPest&&<div onClick={e=>{e.stopPropagation();onPest(plant);}}
+          {activePests>0&&onPest&&<button onClick={e=>{e.stopPropagation();onPest(plant);}}
             title={activePests+' active pest/disease issue'+(activePests>1?'s':'')}
+            aria-label={activePests+' active pest/disease issue'+(activePests>1?'s':'')+' — view'}
             style={{position:'absolute',top:plant.medicinal?32:8,left:8,background:'rgba(239,68,68,0.9)',
+              border:'none',font:'inherit',
               color:'#fff',fontSize:9,fontWeight:700,padding:'2px 5px',borderRadius:4,
-              cursor:'pointer',zIndex:2}}>&#x1F41B; {activePests}</div>}
+              cursor:'pointer',zIndex:2}}>&#x1F41B; {activePests}</button>}
           <div style={{position:'absolute',top:8,right:8,background:badgeColor,color:'#fff',
             fontSize:10,fontWeight:700,padding:'2px 6px',borderRadius:4}}>{badge}</div>
           {archived&&<div style={{position:'absolute',top:32,right:8,background:'rgba(107,114,128,0.9)',

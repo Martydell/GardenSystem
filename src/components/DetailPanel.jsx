@@ -57,7 +57,7 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
         maxHeight:M?'92vh':'90vh',overflowY:'auto',
         paddingBottom:M?'env(safe-area-inset-bottom)':'0',
         border:'1px solid '+T.borderMid,
-        boxShadow:'0 -4px 40px rgba(0,0,0,0.5)'}}>
+        boxShadow:T.shadowLg}}>
         {/* Header photo */}
         <div style={{position:'relative',height:200,overflow:'hidden',borderRadius:'16px 16px 0 0',
           background:T.surface,cursor:photo?'zoom-in':'default'}}
@@ -73,11 +73,11 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
             color:'#fff',fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:5}}>IN SEASON</div>}
           <input ref={uploadRef} type="file" accept="image/*" capture="environment" style={{display:'none'}} onChange={handleDetailUpload}/>
           <button onClick={e=>{e.stopPropagation();uploadRef.current&&uploadRef.current.click();}}
-            title="Upload your own photo"
+            title="Upload your own photo" aria-label="Upload your own photo"
             style={{position:'absolute',bottom:12,right:12,background:'rgba(0,0,0,0.55)',border:'none',
               color:'#fff',borderRadius:'50%',width:30,height:30,cursor:'pointer',fontSize:15,
               display:'flex',alignItems:'center',justifyContent:'center'}}>&#x1F4F7;</button>
-          <button onClick={e=>{e.stopPropagation();onClose();}} style={{position:'absolute',top:12,right:plant.medicinal?12+70:12,
+          <button onClick={e=>{e.stopPropagation();onClose();}} aria-label="Close" style={{position:'absolute',top:12,right:plant.medicinal?12+70:12,
             background:'rgba(0,0,0,0.5)',border:'none',color:'#fff',borderRadius:'50%',
             width:28,height:28,cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center'}}>&#x2715;</button>
         </div>
@@ -85,9 +85,10 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
           <div style={{display:'flex',gap:6,padding:'10px 20px 0',overflowX:'auto'}}>
             {history.map((h,i)=>(
               <button key={h.ts||'legacy'} onClick={()=>setHistoryOpenAt(i)} title={h.ts?fmtDate(h.ts):'Earlier'}
+                aria-label={'View photo from '+(h.ts?fmtDate(h.ts):'earlier')}
                 style={{flexShrink:0,width:44,height:44,borderRadius:6,overflow:'hidden',padding:0,cursor:'pointer',
                   border:'1px solid '+T.border,background:T.surface}}>
-                <img src={wikiThumb(h.url,100)} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                <img src={wikiThumb(h.url,100)} alt={h.ts?`Photo from ${fmtDate(h.ts)}`:'Earlier photo'} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
               </button>
             ))}
           </div>
@@ -216,20 +217,20 @@ function PhotoHistoryModal({history,index,onIndexChange,onClose,onRemove,T}){
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.92)',
       zIndex:1100,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',cursor:'zoom-out'}}>
-      <img src={entry.url} alt="" onClick={e=>e.stopPropagation()} style={{
+      <img src={entry.url} alt={entry.ts?`Photo from ${fmtDate(entry.ts)}`:'Earlier photo'} onClick={e=>e.stopPropagation()} style={{
         maxWidth:'90vw',maxHeight:'78vh',objectFit:'contain',borderRadius:8,
-        boxShadow:'0 8px 40px rgba(0,0,0,0.8)'}}/>
+        boxShadow:'0 8px 30px rgba(0,0,0,0.5)'}}/>
       <div onClick={e=>e.stopPropagation()} style={{display:'flex',alignItems:'center',gap:16,marginTop:16}}>
-        <button onClick={()=>onIndexChange(index-1)} disabled={index===0} style={{...btnStyle,opacity:index===0?0.3:1,cursor:index===0?'default':'pointer'}}>&#x2190;</button>
+        <button onClick={()=>onIndexChange(index-1)} disabled={index===0} aria-label="Previous photo" style={{...btnStyle,opacity:index===0?0.3:1,cursor:index===0?'default':'pointer'}}>&#x2190;</button>
         <span style={{color:'#fff',fontSize:13}}>{entry.ts?fmtDate(entry.ts):'Earlier'} &bull; {index+1}/{history.length}</span>
-        <button onClick={()=>onIndexChange(index+1)} disabled={index===history.length-1} style={{...btnStyle,opacity:index===history.length-1?0.3:1,cursor:index===history.length-1?'default':'pointer'}}>&#x2192;</button>
+        <button onClick={()=>onIndexChange(index+1)} disabled={index===history.length-1} aria-label="Next photo" style={{...btnStyle,opacity:index===history.length-1?0.3:1,cursor:index===history.length-1?'default':'pointer'}}>&#x2192;</button>
       </div>
       <button onClick={e=>{e.stopPropagation();if(window.confirm('Remove this photo from the growth history?'))onRemove(entry.ts);}}
         style={{marginTop:10,background:'none',border:'1px solid rgba(239,68,68,0.5)',color:'#ef4444',
           borderRadius:20,padding:'5px 14px',fontSize:12,cursor:'pointer'}}>
         &#x1F5D1;&#xFE0F; Remove this photo
       </button>
-      <button onClick={onClose} style={{position:'fixed',top:16,right:20,background:'none',
+      <button onClick={onClose} aria-label="Close" style={{position:'fixed',top:16,right:20,background:'none',
         border:'none',color:'#fff',fontSize:28,cursor:'pointer',lineHeight:1}}>&#x2715;</button>
     </div>
   );

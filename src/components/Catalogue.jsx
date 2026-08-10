@@ -384,6 +384,7 @@ export function Catalogue(){
         <div key={p.id} style={{position:'relative'}}>
           <button onClick={e=>{e.stopPropagation();toggleSelect(p.id);}}
             title={isSel?'Deselect':'Select for bulk move'}
+            aria-label={isSel?'Deselect '+p.name:'Select '+p.name+' for bulk move'}
             style={{position:'absolute',top:-6,right:-6,zIndex:6,width:24,height:24,borderRadius:'50%',
               border:'2px solid '+(isSel?'#22c55e':'#fff'),
               background:isSel?'#22c55e':'rgba(0,0,0,0.4)',
@@ -392,7 +393,7 @@ export function Catalogue(){
             {isSel?'✓':''}
           </button>
           <Card plant={p} onSelect={setSelected} careLog={careLog} onLog={logCare}
-            onPhotoZoom={setLightboxSrc} animIdx={i} pestLog={pestLog} onPest={setPestModal}
+            onPhotoZoom={photo=>setLightboxSrc({src:photo,name:p.name})} animIdx={i} pestLog={pestLog} onPest={setPestModal}
             onDragStart={overviewMode?handleCardDragStart:undefined}
             onReassign={reassignPlant} zoneOptions={AREAS}
             zoneLabels={plantZoneMap[pid]||[]} archived={archivedIds.has(pid)}/>
@@ -482,8 +483,12 @@ export function Catalogue(){
     .chip-row::-webkit-scrollbar{display:none;}
     input::placeholder{color:${T.sub};opacity:0.7;}
     button,input,select{-webkit-tap-highlight-color:transparent;}
+    :focus-visible{outline:2px solid ${T.focusRing};outline-offset:2px;border-radius:4px;}
+    button:hover:not(:disabled),[role="button"]:hover{filter:brightness(1.06);}
+    button,[role="button"]{transition:transform .1s ease,opacity .15s ease,filter .15s ease;}
+    button:active:not(:disabled),[role="button"]:active{transform:scale(0.97);}
     @media(max-width:639px){html{font-size:15px;}}
-    @media(prefers-reduced-motion:reduce){.plant-card,.plant-card:hover,.section-hdr,.cards-grid{animation:none;transition:none;transform:none;}}
+    @media(prefers-reduced-motion:reduce){.plant-card,.plant-card:hover,.section-hdr,.cards-grid,button,[role="button"],button:active:not(:disabled),[role="button"]:active{animation:none;transition:none;transform:none;}}
   `;
 
   const groupBtn = (key,label,icon,badge) => (
@@ -538,7 +543,7 @@ export function Catalogue(){
           placeholder="Search plants..." style={{
             flex:1,padding:M?'10px 14px':'10px 16px',background:T.input,
             border:'1px solid '+T.border,borderRadius:10,color:T.text,
-            fontSize:14,outline:'none'}}/>
+            fontSize:14}}/>
         <button onClick={()=>setShowFilters(true)} style={{
           padding:M?'10px 14px':'10px 16px',borderRadius:10,cursor:'pointer',fontSize:13,fontWeight:600,
           border:'1px solid '+(tags.length?T.accent:T.border),
@@ -781,7 +786,7 @@ export function Catalogue(){
                         if(e.key==='Escape')setEditingArea(null);
                       }}
                       style={{padding:'4px 10px',borderRadius:10,border:'1px solid '+T.accent,
-                        background:T.input,color:T.text,fontSize:18,fontWeight:700,outline:'none',width:200}}/>
+                        background:T.input,color:T.text,fontSize:18,fontWeight:700,width:200}}/>
                   ):(
                     <h2 style={{fontSize:20,fontWeight:700,color:T.text,display:'flex',alignItems:'center',gap:8}}>
                       <span dangerouslySetInnerHTML={{__html:currentArea.icon}}/> {getAreaName(area)} Map
@@ -789,25 +794,25 @@ export function Catalogue(){
                   )}
                   {editingArea!==area&&(
                     <button onClick={()=>{setEditingArea(area);setEditingName(getAreaName(area));}}
-                      title="Rename zone" style={{marginLeft:6,padding:'4px 8px',border:'1px solid '+T.border,
+                      title="Rename zone" aria-label="Rename zone" style={{marginLeft:6,padding:'4px 8px',border:'1px solid '+T.border,
                         borderRadius:20,cursor:'pointer',fontSize:11,background:T.input,color:T.sub}}>
                       &#x270F;&#xFE0F;
                     </button>
                   )}
                 </div>
                 <div style={{display:'flex',gap:6,marginLeft:'auto',alignItems:'center'}}>
-                  <button onClick={()=>setShowPrint(true)} title="Print zone summary"
+                  <button onClick={()=>setShowPrint(true)} title="Print zone summary" aria-label="Print zone summary"
                     style={{padding:'5px 10px',borderRadius:20,border:'1px solid '+T.border,
                       cursor:'pointer',fontSize:13,background:T.input,color:T.sub}}>
                     &#x1F5A8;&#xFE0F;
                   </button>
-                  <button onClick={()=>setShowMapSettings(s=>!s)} title="Customise map grid"
+                  <button onClick={()=>setShowMapSettings(s=>!s)} title="Customise map grid" aria-label="Customise map grid"
                     style={{padding:'5px 10px',borderRadius:20,border:'1px solid '+(showMapSettings?T.accent:T.border),
                       cursor:'pointer',fontSize:13,background:showMapSettings?'rgba(74,124,63,0.12)':T.input,
                       color:showMapSettings?T.accent:T.sub}}>
                     &#x2699;&#xFE0F;
                   </button>
-                  <button onClick={()=>setMapFull(true)} title="Full screen"
+                  <button onClick={()=>setMapFull(true)} title="Full screen" aria-label="Full screen"
                     style={{padding:'5px 10px',borderRadius:20,border:'1px solid '+T.border,
                       cursor:'pointer',fontSize:13,background:T.input,color:T.sub}}>
                     &#x26F6;
@@ -843,12 +848,12 @@ export function Catalogue(){
                     <input type="number" min={3} max={30} value={cfg.cols}
                       onChange={e=>updateMapCfg(area,{cols:Math.max(3,Math.min(30,+e.target.value||cfg.cols))})}
                       style={{width:52,padding:'4px 6px',borderRadius:6,border:'1px solid '+T.border,
-                        background:T.input,color:T.text,fontSize:12,textAlign:'center',outline:'none'}}/>
+                        background:T.input,color:T.text,fontSize:12,textAlign:'center'}}/>
                     <span style={{fontSize:11,color:T.sub}}>Rows</span>
                     <input type="number" min={3} max={24} value={cfg.rows}
                       onChange={e=>updateMapCfg(area,{rows:Math.max(3,Math.min(24,+e.target.value||cfg.rows))})}
                       style={{width:52,padding:'4px 6px',borderRadius:6,border:'1px solid '+T.border,
-                        background:T.input,color:T.text,fontSize:12,textAlign:'center',outline:'none'}}/>
+                        background:T.input,color:T.text,fontSize:12,textAlign:'center'}}/>
                   </div>
                   <div style={{display:'flex',alignItems:'center',gap:5}}>
                     <span style={{fontSize:11,color:T.sub}}>Cell</span>
@@ -955,13 +960,13 @@ export function Catalogue(){
 
       {/* ── Overlays ── */}
       {selected&&<DetailPanel plant={selected} onClose={()=>setSelected(null)}
-        careLog={careLog} onLog={logCare} onPhotoZoom={setLightboxSrc}
+        careLog={careLog} onLog={logCare} onPhotoZoom={photo=>setLightboxSrc({src:photo,name:selected.name})}
         notes={notes} harvests={harvests} onAddNote={addNote} onAddHarvest={addHarvest}
         careHistory={careHistory} pestLog={pestLog} onPest={setPestModal}
         zoneLabels={plantZoneMap[String(selected.id)]||[]}
         isArchived={archivedIds.has(String(selected.id))} onToggleArchive={()=>toggleArchive(selected.id)}
         onDelete={()=>{deletePlant(selected.id);setSelected(null);}}/>}
-      {lightboxSrc&&<PhotoLightbox src={lightboxSrc} onClose={()=>setLightboxSrc(null)}/>}
+      {lightboxSrc&&<PhotoLightbox src={lightboxSrc.src} name={lightboxSrc.name} onClose={()=>setLightboxSrc(null)}/>}
       {showPrint&&currentArea&&(
         <React.Suspense fallback={<ZoneTabLoading T={T}/>}>
           <ZonePrintModal area={area} currentArea={currentArea} allPlants={activePlants} careLog={careLog}

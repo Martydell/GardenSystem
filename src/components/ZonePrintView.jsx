@@ -3,6 +3,11 @@ import { SeasonalTasksPanel, SowingCalendar, WateringCalendarView } from './Cale
 import { LIGHT, ThemeCtx, plantsInArea } from '../utils.js';
 
 export function ZonePrintModal({area, currentArea, allPlants, careLog, onClose}){
+  React.useEffect(()=>{
+    const h=e=>{if(e.key==='Escape')onClose();};
+    window.addEventListener('keydown',h);
+    return()=>window.removeEventListener('keydown',h);
+  },[onClose]);
   const zonePlants = plantsInArea(area, allPlants, currentArea.defaultPos);
 
   let pos = null;
@@ -30,7 +35,7 @@ export function ZonePrintModal({area, currentArea, allPlants, careLog, onClose})
         `}</style>
         <div id="zone-print-root" onClick={e=>e.stopPropagation()} style={{background:LIGHT.card,
           borderRadius:12, maxWidth:700, width:'100%', maxHeight:'90vh', overflowY:'auto',
-          border:'1px solid '+LIGHT.borderMid, boxShadow:'0 -4px 40px rgba(0,0,0,0.5)', padding:24}}>
+          border:'1px solid '+LIGHT.borderMid, boxShadow:LIGHT.shadowLg, padding:24}}>
           <div id="zone-print-hide" style={{display:'flex',justifyContent:'flex-end',gap:8,marginBottom:12}}>
             <button onClick={()=>window.print()} style={{padding:'6px 14px',borderRadius:20,
               border:'1px solid '+LIGHT.accent,cursor:'pointer',fontSize:13,fontWeight:600,

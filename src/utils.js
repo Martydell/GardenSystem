@@ -33,6 +33,7 @@ export const DARK = {
   border:'rgba(255,255,255,0.08)', borderMid:'rgba(255,255,255,0.14)',
   input:'rgba(255,255,255,0.07)', overlay:'rgba(0,0,0,0.78)',
   tag:'rgba(255,255,255,0.08)', tagText:'#c8d8c0', badgeBg:'rgba(0,0,0,0.5)',
+  focusRing:'#7ab86a', shadowLg:'0 8px 30px rgba(0,0,0,0.45)',
 };
 
 export const LIGHT = {
@@ -41,6 +42,7 @@ export const LIGHT = {
   border:'rgba(0,0,0,0.1)', borderMid:'rgba(0,0,0,0.18)',
   input:'rgba(0,0,0,0.06)', overlay:'rgba(0,0,0,0.52)',
   tag:'rgba(0,0,0,0.08)', tagText:'#3a5a28', badgeBg:'rgba(0,0,0,0.35)',
+  focusRing:'#2a6a18', shadowLg:'0 8px 30px rgba(0,0,0,0.18)',
 };
 
 export const ThemeCtx = React.createContext(DARK);

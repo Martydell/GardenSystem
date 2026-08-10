@@ -149,13 +149,14 @@ export function IrrigationSection({title,storageKey,fallback,cfg,allPlants,editM
               );
               if(!plants.length){
                 return (
-                  <div key={key} onClick={editMode?()=>toggleInstalled(key):undefined}
-                    style={{position:'relative',width:size,height:size,borderRadius:8,
+                  <button key={key} onClick={editMode?()=>toggleInstalled(key):undefined}
+                    disabled={!editMode} aria-label={editMode?(isInstalled?'Remove drip line':'Mark drip line installed'):undefined}
+                    style={{position:'relative',width:size,height:size,borderRadius:8,padding:0,margin:0,
                       border:'1px dashed '+(isInstalled?'#22c55e':T.border),
                       background:isInstalled?'rgba(34,197,94,0.08)':T.surface,
                       cursor:editMode?'pointer':'default'}}>
                     {dripBadge}
-                  </div>
+                  </button>
                 );
               }
               const levels=plants.map(waterLevel);
@@ -163,14 +164,16 @@ export function IrrigationSection({title,storageKey,fallback,cfg,allPlants,editM
               const c=WATER_LEVEL_COLORS[worst];
               const names=plants.map(p=>p.name).join(', ');
               return (
-                <div key={key} onClick={editMode?()=>toggleInstalled(key):undefined}
+                <button key={key} onClick={editMode?()=>toggleInstalled(key):undefined}
+                  disabled={!editMode}
+                  aria-label={(editMode?(isInstalled?'Remove drip line — ':'Mark drip line installed — '):'')+names}
                   title={plants.map(p=>p.name+' — '+WATER_LEVEL_COLORS[waterLevel(p)].label+' water need').join('\n')
                     +(isInstalled?'\n\n💧 Drip line installed':'')}
                   style={{position:'relative',width:size,height:size,borderRadius:8,background:c.bg,
                     border:'2px solid '+(isInstalled?'#22c55e':c.border),
                     boxShadow:isInstalled?'0 0 0 2px rgba(34,197,94,0.5)':'none',
-                    display:'flex',alignItems:'center',
-                    justifyContent:'center',padding:3,overflow:'hidden',
+                    display:'flex',alignItems:'center',padding:3,margin:0,
+                    justifyContent:'center',overflow:'hidden',
                     cursor:editMode?'pointer':'default'}}>
                   {dripBadge}
                   <span style={{fontSize:8,color:'#fff',fontWeight:700,textAlign:'center',
@@ -178,7 +181,7 @@ export function IrrigationSection({title,storageKey,fallback,cfg,allPlants,editM
                     display:'-webkit-box',WebkitLineClamp:4,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
                     {names}
                   </span>
-                </div>
+                </button>
               );
             }))}
           </div>
