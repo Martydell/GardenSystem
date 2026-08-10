@@ -192,19 +192,27 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
     }
     save(next);
   }
-  // Drops a freshly-dragged (not yet placed) plant into the first free cell within
-  // a zone's bounds, so the user doesn't have to aim for one exact empty cell —
-  // falls back to the zone's top-left cell (merging into a pot) if it's completely full.
-  function placeInZone(pid,zone){
+  // Drops a freshly-dragged (not yet placed) plant into the free cell nearest to
+  // where it was actually dropped, so the user doesn't have to aim for one exact
+  // empty cell but also doesn't always get shoved to the zone's top-left corner —
+  // falls back to the drop point itself (merging into a pot) if the zone is full.
+  function nearestFreeCell(zone,hintX,hintY,isFree){
     const zp=getZonePos(zone);
+    let best=null,bestDist=Infinity;
     for(let y=zp.y;y<zp.y+zone.h;y++){
       for(let x=zp.x;x<zp.x+zone.w;x++){
         const key=`${x},${y}`;
-        if(disabledCells.has(key))continue;
-        if(!pos[key]){ placeAt(pid,x,y); return; }
+        if(disabledCells.has(key)||!isFree(key))continue;
+        const dist=(x-hintX)**2+(y-hintY)**2;
+        if(dist<bestDist){bestDist=dist;best={x,y};}
       }
     }
-    placeAt(pid,zp.x,zp.y);
+    return best;
+  }
+  function placeInZone(pid,zone,hintX,hintY){
+    const cell=nearestFreeCell(zone,hintX,hintY,key=>!pos[key]);
+    if(cell){ placeAt(pid,cell.x,cell.y); return; }
+    placeAt(pid,hintX,hintY);
   }
   function removeCell(x,y,pid=null){
     const key=`${x},${y}`;
@@ -224,16 +232,10 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
     if(fromCell&&fromCell!==key) delete next[fromCell];
     saveObjects(next);
   }
-  function placeObjectInZone(typeId,zone){
-    const zp=getZonePos(zone);
-    for(let y=zp.y;y<zp.y+zone.h;y++){
-      for(let x=zp.x;x<zp.x+zone.w;x++){
-        const key=`${x},${y}`;
-        if(disabledCells.has(key))continue;
-        if(!pos[key]&&!objects[key]){ placeObjectAt(typeId,x,y); return; }
-      }
-    }
-    placeObjectAt(typeId,zp.x,zp.y);
+  function placeObjectInZone(typeId,zone,hintX,hintY){
+    const cell=nearestFreeCell(zone,hintX,hintY,key=>!pos[key]&&!objects[key]);
+    if(cell){ placeObjectAt(typeId,cell.x,cell.y); return; }
+    placeObjectAt(typeId,hintX,hintY);
   }
   function removeObjectCell(x,y){
     const key=`${x},${y}`;
@@ -819,29 +821,20 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                       if(!e.dataTransfer.types.includes('plantid')&&!e.dataTransfer.types.includes('objecttypeid'))return;
                       e.preventDefault();
                       const fromCell=e.dataTransfer.getData('fromCell');
+                      const rect=e.currentTarget.getBoundingClientRect();
+                      const cx=zp.x+Math.max(0,Math.min(z.w-1,Math.floor((e.clientX-rect.left)/(size+GP))));
+                      const cy=zp.y+Math.max(0,Math.min(z.h-1,Math.floor((e.clientY-rect.top)/(size+GP))));
                       const otid=e.dataTransfer.getData('objectTypeId');
                       if(otid){
-                        if(fromCell){
-                          const rect=e.currentTarget.getBoundingClientRect();
-                          const cx=zp.x+Math.max(0,Math.min(z.w-1,Math.floor((e.clientX-rect.left)/(size+GP))));
-                          const cy=zp.y+Math.max(0,Math.min(z.h-1,Math.floor((e.clientY-rect.top)/(size+GP))));
-                          placeObjectAt(otid,cx,cy,fromCell);
-                        }else{
-                          placeObjectInZone(otid,z);
-                        }
+                        if(fromCell) placeObjectAt(otid,cx,cy,fromCell);
+                        else placeObjectInZone(otid,z,cx,cy);
                         setHov(null);
                         return;
                       }
                       const pid=e.dataTransfer.getData('plantId');
                       if(!pid)return;
-                      if(fromCell){
-                        const rect=e.currentTarget.getBoundingClientRect();
-                        const cx=zp.x+Math.max(0,Math.min(z.w-1,Math.floor((e.clientX-rect.left)/(size+GP))));
-                        const cy=zp.y+Math.max(0,Math.min(z.h-1,Math.floor((e.clientY-rect.top)/(size+GP))));
-                        placeAt(pid,cx,cy,fromCell);
-                      }else{
-                        placeInZone(pid,z);
-                      }
+                      if(fromCell) placeAt(pid,cx,cy,fromCell);
+                      else placeInZone(pid,z,cx,cy);
                       setHov(null);
                     }:undefined}
                     style={{
