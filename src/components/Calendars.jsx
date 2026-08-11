@@ -96,6 +96,62 @@ export function CareSummaryPanel({allPlants, careLog, pestLog, onSelect}){
   );
 }
 
+// A flat, tickable "what needs doing today" list — complements CareSummaryPanel's
+// per-type counts with something more directly actionable: one row per due item,
+// tap done and it's gone.
+export function TodaysChecklist({allPlants, careLog, pestLog, onLog, onResolvePest, onSelect}){
+  const T = React.useContext(ThemeCtx);
+  const items = [];
+  allPlants.forEach(p=>{
+    const wD = daysUntilDue(p, careLog, 'watered');
+    if(wD!=null && wD<=0) items.push({key:p.id+'-watered', plant:p, type:'watered', label:'Water', icon:'&#x1F4A7;', color:'#3b82f6'});
+    const fD = daysUntilDue(p, careLog, 'fed');
+    if(fD!=null && fD<=0) items.push({key:p.id+'-fed', plant:p, type:'fed', label:'Feed', icon:'&#x1F9EA;', color:'#10b981'});
+    if(pruneApplicable(p)){
+      const pD = daysUntilDue(p, careLog, 'pruned');
+      if(pD!=null && pD<=0) items.push({key:p.id+'-pruned', plant:p, type:'pruned', label:'Prune', icon:'&#x2702;&#xFE0F;', color:'#d97706'});
+    }
+  });
+  const activePests = (pestLog||[]).filter(e=>!e.resolved);
+
+  const row = (key, icon, color, text, onDone, doneLabel) => (
+    <div key={key} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 4px',
+      borderBottom:'1px solid '+T.border}}>
+      <span style={{fontSize:16,flexShrink:0}} dangerouslySetInnerHTML={{__html:icon}}/>
+      <span style={{flex:1,fontSize:13,color:T.text,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{text}</span>
+      <button onClick={onDone} style={{flexShrink:0,padding:'5px 12px',borderRadius:20,border:'1px solid '+color,
+        background:'transparent',color,fontSize:12,fontWeight:600,cursor:'pointer'}}>
+        {doneLabel||'✓ Done'}
+      </button>
+    </div>
+  );
+
+  const total = items.length + activePests.length;
+
+  return (
+    <div style={{background:T.card,border:'1px solid '+T.border,borderRadius:12,padding:'14px 16px',marginBottom:24}}>
+      <h3 style={{fontSize:16,fontWeight:700,color:T.text,margin:'0 0 4px'}}>&#x2705; Today's Checklist</h3>
+      {total===0?(
+        <p style={{color:T.sub,fontSize:13,margin:'8px 0 0'}}>&#x1F389; All caught up for today.</p>
+      ):(
+        <div style={{marginTop:8}}>
+          {items.map(it=>row(it.key, it.icon, it.color,
+            <button onClick={()=>onSelect(it.plant)} style={{background:'none',border:'none',color:'inherit',
+              font:'inherit',cursor:'pointer',padding:0,textAlign:'left'}}>{it.label} — {it.plant.name}</button>,
+            ()=>onLog(it.plant.id, it.type)))}
+          {activePests.map(e=>{
+            const p=allPlants.find(pl=>String(pl.id)===String(e.plantId));
+            return row('pest-'+e.id, '&#x1F41B;', '#ef4444',
+              <button onClick={()=>p&&onSelect(p)} style={{background:'none',border:'none',color:'inherit',
+                font:'inherit',cursor:'pointer',padding:0,textAlign:'left'}}>{e.pest}{p?' — '+p.name:''}</button>,
+              ()=>onResolvePest(e.id), '✓ Resolved');
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function CareStreak({careLog, allPlants}){
   const T = React.useContext(ThemeCtx);
   const now = Date.now();

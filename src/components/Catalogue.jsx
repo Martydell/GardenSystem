@@ -1,5 +1,5 @@
 import React from 'react';
-import { BackupRestorePanel, CareSummaryPanel, DashboardView, SeasonalTasksPanel, SowingCalendar, WateringCalendarView } from './Calendars.jsx';
+import { BackupRestorePanel, CareSummaryPanel, DashboardView, SeasonalTasksPanel, SowingCalendar, TodaysChecklist, WateringCalendarView } from './Calendars.jsx';
 import { DetailPanel } from './DetailPanel.jsx';
 import { BulkWaterModal, FiltersDrawer, PestLogModal, PhotoLightbox } from './Modals.jsx';
 import { CoverSlideshow, HydroCard, IndoorCard, OutdoorCard, ProduceCard } from './PlantCards.jsx';
@@ -698,6 +698,9 @@ export function Catalogue(){
                 </button>
               ))}
             </div>
+
+            <TodaysChecklist allPlants={careActivePlants} careLog={careLog} pestLog={pestLog}
+              onLog={logCare} onResolvePest={resolvePest} onSelect={setSelected}/>
 
             <WeatherWidget/>
 
