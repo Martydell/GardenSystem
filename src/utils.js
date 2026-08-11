@@ -133,6 +133,27 @@ export function daysUntilDue(plant, careLog, type){
 
 export const URG_COLOR = { overdue:'#ef4444', soon:'#f59e0b', ok:'#22c55e', unset:'#6b7280' };
 
+// Consecutive calendar days (ending today) with at least one care action logged —
+// an engagement streak, not a "did you finish everything due" streak (that isn't
+// reliably reconstructable after the fact since intervals are relative-to-last-log,
+// not a fixed calendar schedule).
+export function computeStreak(careHistory){
+  const dayKey = d => d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+  const days = new Set();
+  Object.values(careHistory||{}).forEach(arr=>{
+    (arr||[]).forEach(ts=>days.add(dayKey(new Date(ts))));
+  });
+  const cursor = new Date();
+  // Nothing logged yet today shouldn't show streak:0 the instant you open the app.
+  if(!days.has(dayKey(cursor))) cursor.setDate(cursor.getDate()-1);
+  let streak = 0;
+  while(days.has(dayKey(cursor))){
+    streak++;
+    cursor.setDate(cursor.getDate()-1);
+  }
+  return streak;
+}
+
 export function plantCategory(p){ const id=String(p.id); return id.startsWith('h')?'hydro':id.startsWith('i')?'indoor':id.startsWith('p')?'produce':'outdoor'; }
 
 // Wikimedia only serves direct/hotlinked thumbnail requests at these fixed widths —

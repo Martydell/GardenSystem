@@ -7,7 +7,7 @@ import { NotificationManager, WeatherWidget } from './Weather.jsx';
 import { WishlistView } from './Wishlist.jsx';
 import { AREAS, DEFAULT_ZONE_FOR_CATEGORY, GROUPS, areasInGroup, getArea } from '../data/areas.js';
 import { HYDRO_PLANTS, INDOOR_PLANTS, OUTDOOR_PLANTS, PRODUCE_PLANTS, TAG_C } from '../data/plants.js';
-import { DARK, LIGHT, ThemeCtx, addCustomPlant, getCustomPlants, getUrgency, plantCategory, plantsInArea, useIsMobile, useScrollCollapse } from '../utils.js';
+import { DARK, LIGHT, ThemeCtx, addCustomPlant, computeStreak, getCustomPlants, getUrgency, plantCategory, plantsInArea, useIsMobile, useScrollCollapse } from '../utils.js';
 
 const MapGrid = React.lazy(()=>import('./MapGrid.jsx').then(m=>({default:m.MapGrid})));
 const IrrigationView = React.lazy(()=>import('./Irrigation.jsx').then(m=>({default:m.IrrigationView})));
@@ -700,7 +700,8 @@ export function Catalogue(){
             </div>
 
             <TodaysChecklist allPlants={careActivePlants} careLog={careLog} pestLog={pestLog}
-              onLog={logCare} onResolvePest={resolvePest} onSelect={setSelected}/>
+              onLog={logCare} onResolvePest={resolvePest} onSelect={setSelected}
+              streak={computeStreak(careHistory)}/>
 
             <WeatherWidget/>
 

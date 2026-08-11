@@ -99,7 +99,7 @@ export function CareSummaryPanel({allPlants, careLog, pestLog, onSelect}){
 // A flat, tickable "what needs doing today" list — complements CareSummaryPanel's
 // per-type counts with something more directly actionable: one row per due item,
 // tap done and it's gone.
-export function TodaysChecklist({allPlants, careLog, pestLog, onLog, onResolvePest, onSelect}){
+export function TodaysChecklist({allPlants, careLog, pestLog, onLog, onResolvePest, onSelect, streak=0}){
   const T = React.useContext(ThemeCtx);
   const items = [];
   allPlants.forEach(p=>{
@@ -130,7 +130,16 @@ export function TodaysChecklist({allPlants, careLog, pestLog, onLog, onResolvePe
 
   return (
     <div style={{background:T.card,border:'1px solid '+T.border,borderRadius:12,padding:'14px 16px',marginBottom:24}}>
-      <h3 style={{fontSize:16,fontWeight:700,color:T.text,margin:'0 0 4px'}}>&#x2705; Today's Checklist</h3>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:4}}>
+        <h3 style={{fontSize:16,fontWeight:700,color:T.text,margin:0}}>&#x2705; Today's Checklist</h3>
+        {streak>0&&(
+          <span title="Consecutive days you've logged at least one care action"
+            style={{fontSize:12,fontWeight:700,color:'#f59e0b',background:'rgba(245,158,11,0.12)',
+              padding:'3px 10px',borderRadius:20,whiteSpace:'nowrap'}}>
+            &#x1F525; {streak} day{streak>1?'s':''}
+          </span>
+        )}
+      </div>
       {total===0?(
         <p style={{color:T.sub,fontSize:13,margin:'8px 0 0'}}>&#x1F389; All caught up for today.</p>
       ):(
