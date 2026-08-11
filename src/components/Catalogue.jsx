@@ -628,7 +628,7 @@ export function Catalogue(){
           {groupBtn('overview','Overview','&#x1F3E1;',attention||null)}
           {GROUPS.map(g=>groupBtn(g.key,g.label,g.icon,null))}
           {groupBtn('identify','Identify','&#x1F50D;',null)}
-          {!M&&<div style={{marginLeft:8,flexShrink:0}}><NotificationManager allPlants={careActivePlants} careLog={careLog}/></div>}
+          {!M&&<div style={{marginLeft:8,flexShrink:0}}><NotificationManager allPlants={careActivePlants} careLog={careLog} pestLog={pestLog}/></div>}
         </div>
       </div>
 

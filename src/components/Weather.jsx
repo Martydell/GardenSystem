@@ -1,5 +1,5 @@
 import React from 'react';
-import { ThemeCtx, getUrgency } from '../utils.js';
+import { ThemeCtx, getUrgency, pruneApplicable } from '../utils.js';
 
 export const WMO_ICON=c=>c===0?'☀️':c<=2?'⛅':c===3?'☁️':c<=49?'🌫️':c<=69?'🌧️':c<=79?'🌨️':c<=84?'🌦️':'⛈️';
 
@@ -51,7 +51,7 @@ export function WeatherWidget(){
   );
 }
 
-export function NotificationManager({allPlants, careLog}){
+export function NotificationManager({allPlants, careLog, pestLog}){
   const T=React.useContext(ThemeCtx);
   const [perm,setPerm]=React.useState(typeof Notification!=='undefined'?Notification.permission:'denied');
 
@@ -59,13 +59,21 @@ export function NotificationManager({allPlants, careLog}){
     if(typeof Notification==='undefined'||Notification.permission!=='granted') return;
     const overdueW=allPlants.filter(p=>getUrgency(p,careLog,'watered').level==='overdue');
     const overdueF=allPlants.filter(p=>getUrgency(p,careLog,'fed').level==='overdue');
+    const overdueP=allPlants.filter(p=>pruneApplicable(p)&&getUrgency(p,careLog,'pruned').level==='overdue');
+    const activePests=(pestLog||[]).filter(e=>!e.resolved);
     if(overdueW.length){
       new Notification('Plant Watering',{body:overdueW.length+' plant'+(overdueW.length>1?'s':'')+' need water: '+overdueW.slice(0,3).map(p=>p.name).join(', ')+(overdueW.length>3?'...':'')});
     }
     if(overdueF.length){
       new Notification('Plant Feeding',{body:overdueF.length+' plant'+(overdueF.length>1?'s':'')+' need feeding'});
     }
-    if(!overdueW.length&&!overdueF.length){
+    if(overdueP.length){
+      new Notification('Plant Pruning',{body:overdueP.length+' plant'+(overdueP.length>1?'s':'')+' need pruning: '+overdueP.slice(0,3).map(p=>p.name).join(', ')+(overdueP.length>3?'...':'')});
+    }
+    if(activePests.length){
+      new Notification('Pest & Disease',{body:activePests.length+' unresolved pest/disease issue'+(activePests.length>1?'s':'')});
+    }
+    if(!overdueW.length&&!overdueF.length&&!overdueP.length&&!activePests.length){
       new Notification('All Good',{body:'No plants are overdue right now.'});
     }
     try{localStorage.setItem('plant-notif-last',String(Date.now()));}catch{}
