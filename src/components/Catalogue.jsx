@@ -146,9 +146,9 @@ export function Catalogue(){
     try{localStorage.setItem('map-settings',JSON.stringify(next));}catch{}
   }
   function resetMapLayout(k){
-    if(!window.confirm(`Reset the ${getAreaName(k)} map layout? This clears all plant placements, custom zones, labels, colours and any background photo you've set for this map, restoring the built-in defaults.`))return;
+    if(!window.confirm(`Reset the ${getAreaName(k)} map layout? This clears all plant placements, placed objects, custom zones, labels, colours and any background photo you've set for this map, restoring the built-in defaults.`))return;
     const sk=k+'-map';
-    ['','-text','-color','-disabled','-czones','-rzones','-zlabels','-bg','-drip-installed'].forEach(suffix=>{
+    ['','-text','-color','-disabled','-czones','-rzones','-zlabels','-bg','-drip-installed','-objects'].forEach(suffix=>{
       try{localStorage.removeItem(sk+suffix);}catch{}
     });
     window.location.reload();
@@ -891,6 +891,7 @@ export function Catalogue(){
               <MapGrid storageKey={area+'-map'} cols={mapCfg.cols} rows={mapCfg.rows} size={mapCfg.size}
                 zones={currentArea.zones} defaultFilter={currentArea.defaultFilter}
                 defaultPos={currentArea.defaultPos} defaultText={currentArea.defaultText}
+                defaultObjects={currentArea.defaultObjects}
                 allPlants={activePlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}
                 highlightPlantId={highlightPlantId}/>
             </React.Suspense>

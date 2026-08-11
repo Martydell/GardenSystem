@@ -43,8 +43,22 @@ export const COURTYARD_DEFAULT={
 };
 
 export const COURTYARD_TEXT={
-  "10,6":"Bench","11,6":"Chairs","12,6":"Table",
 };
+
+// Real furniture/features from the courtyard photos — a rattan two-seater + single
+// seater in the Sitting Area, a table and second single seater, BBQ + patio heater
+// against the house wall, a washing line, and the shed. Supersedes the old free-text
+// Bench/Chairs/Table labels that used to sit in the Sitting Area (removed above).
+export const COURTYARD_DEFAULT_OBJECTS=[
+  {id:'d-two-seater',    typeId:'two-seater',    x:10,y:6},
+  {id:'d-single-seater1',typeId:'single-seater', x:12,y:6},
+  {id:'d-table',         typeId:'table',         x:7, y:3},
+  {id:'d-single-seater2',typeId:'single-seater', x:9, y:3},
+  {id:'d-bbq',           typeId:'bbq',           x:11,y:3},
+  {id:'d-heater',        typeId:'heater',        x:12,y:3},
+  {id:'d-washing-line',  typeId:'washing-line',  x:0, y:5},
+  {id:'d-shed',          typeId:'shed',          x:3, y:5},
+];
 
 export const HYDROSTART_DEFAULT={
   "0,0":"p02","1,0":"p03","2,0":"h09","3,0":"p07",

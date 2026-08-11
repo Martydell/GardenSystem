@@ -3,7 +3,7 @@ import { OBJECT_TYPES } from '../data/objects.js';
 import { INDOOR_PHOTOS, STATIC_PHOTO_URLS } from '../data/plants.js';
 import { ThemeCtx, getCustomPhoto, getUrgency, plantCategory, resizeImageToDataURL, wikiThumb } from '../utils.js';
 
-export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPos,defaultText,allPlants,careLog,onSelect,fullHeight=false,highlightPlantId=null}){
+export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPos,defaultText,defaultObjects,allPlants,careLog,onSelect,fullHeight=false,highlightPlantId=null}){
   const T=React.useContext(ThemeCtx);
   const [pos,setPos]=React.useState(()=>{
     try{
@@ -33,8 +33,8 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
           return {id:'obj-'+x+'-'+y+'-'+Date.now()+Math.random().toString(36).slice(2,6),typeId,x,y};
         });
       }
-      return [];
-    }catch{return [];}
+      return defaultObjects||[];
+    }catch{return defaultObjects||[];}
   });
   const [dragId,setDragId]=React.useState(null);
   const clickTimerRef=React.useRef(null);
