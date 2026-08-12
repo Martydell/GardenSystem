@@ -14,6 +14,7 @@ const IrrigationView = React.lazy(()=>import('./Irrigation.jsx').then(m=>({defau
 const PestsView = React.lazy(()=>import('./Pests.jsx').then(m=>({default:m.PestsView})));
 const ZonePrintModal = React.lazy(()=>import('./ZonePrintView.jsx').then(m=>({default:m.ZonePrintModal})));
 const IdentifyView = React.lazy(()=>import('./Identify.jsx').then(m=>({default:m.IdentifyView})));
+const FlashcardsView = React.lazy(()=>import('./Flashcards.jsx').then(m=>({default:m.FlashcardsView})));
 
 function ZoneTabLoading({T}){
   return <div style={{padding:24,textAlign:'center',color:T.sub,fontSize:13}}>Loading&hellip;</div>;
@@ -628,12 +629,13 @@ export function Catalogue(){
           {groupBtn('overview','Overview','&#x1F3E1;',attention||null)}
           {GROUPS.map(g=>groupBtn(g.key,g.label,g.icon,null))}
           {groupBtn('identify','Identify','&#x1F50D;',null)}
+          {groupBtn('flashcards','Flashcards','&#x1F0CF;',null)}
           {!M&&<div style={{marginLeft:8,flexShrink:0}}><NotificationManager allPlants={careActivePlants} careLog={careLog} pestLog={pestLog}/></div>}
         </div>
       </div>
 
       {/* ── Leaf zone navigation — the specific zones within the selected group ── */}
-      {group!=='overview'&&group!=='identify'&&(
+      {group!=='overview'&&group!=='identify'&&group!=='flashcards'&&(
         <div style={{position:'sticky',top:45,zIndex:99,background:T.bg,
           borderBottom:'1px solid '+T.border,padding:'8px 16px'}}>
           <div className="chip-row" style={{display:'flex',gap:6,overflowX:'auto',
@@ -668,6 +670,13 @@ export function Catalogue(){
         {group==='identify'&&(
           <React.Suspense fallback={<ZoneTabLoading T={T}/>}>
             <IdentifyView onAddWish={addWish} onAddCustomPlant={handleAddCustomPlant}/>
+          </React.Suspense>
+        )}
+
+        {/* ── Flashcards ── */}
+        {group==='flashcards'&&(
+          <React.Suspense fallback={<ZoneTabLoading T={T}/>}>
+            <FlashcardsView allPlants={careActivePlants}/>
           </React.Suspense>
         )}
 
