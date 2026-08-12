@@ -1,11 +1,11 @@
 export const GREENHOUSE_ZONES=[
-  {id:'back',   label:'Back Staging',   col:'rgba(161,107,59,0.15)', border:'#a16b3b',x:0,y:0,w:7,h:1},
-  {id:'lseat',  label:'Left Staging',   col:'rgba(74,124,63,0.18)',  border:'#4a7c3f',x:0,y:1,w:2,h:4},
-  {id:'path',   label:'Central Path',   col:'rgba(107,114,128,0.09)',border:'#9ca3af',x:2,y:1,w:3,h:7},
-  {id:'hydro',  label:'NFT Channels',   col:'rgba(59,130,246,0.15)', border:'#3b82f6',x:5,y:1,w:2,h:4},
-  {id:'lbed',   label:'Left Ground Bed',col:'rgba(74,124,63,0.12)',  border:'#4a7c3f',x:0,y:5,w:2,h:3},
-  {id:'rbench', label:'Right Bench',    col:'rgba(217,119,6,0.12)',  border:'#d97706',x:5,y:5,w:2,h:3},
-  {id:'entry',  label:'Entrance',       col:'rgba(139,92,246,0.1)',  border:'#8b5cf6',x:0,y:8,w:7,h:1},
+  {id:'back',   label:'Back Staging',   col:'rgba(161,107,59,0.15)', border:'#a16b3b',x:0,y:0,w:7,h:1, surface:'indoor'},
+  {id:'lseat',  label:'Left Staging',   col:'rgba(74,124,63,0.18)',  border:'#4a7c3f',x:0,y:1,w:2,h:4, surface:'indoor'},
+  {id:'path',   label:'Central Path',   col:'rgba(107,114,128,0.09)',border:'#9ca3af',x:2,y:1,w:3,h:7, surface:'gravel'},
+  {id:'hydro',  label:'NFT Channels',   col:'rgba(59,130,246,0.15)', border:'#3b82f6',x:5,y:1,w:2,h:4, surface:'water'},
+  {id:'lbed',   label:'Left Ground Bed',col:'rgba(74,124,63,0.12)',  border:'#4a7c3f',x:0,y:5,w:2,h:3, surface:'soil'},
+  {id:'rbench', label:'Right Bench',    col:'rgba(217,119,6,0.12)',  border:'#d97706',x:5,y:5,w:2,h:3, surface:'indoor'},
+  {id:'entry',  label:'Entrance',       col:'rgba(139,92,246,0.1)',  border:'#8b5cf6',x:0,y:8,w:7,h:1, surface:'tile'},
 ];
 
 export const GREENHOUSE_DEFAULT={
@@ -19,16 +19,16 @@ export const GREENHOUSE_DEFAULT={
 };
 
 export const COURTYARD_ZONES=[
-  {id:'pond',       label:'Pond',                          col:'rgba(20,120,184,0.28)', border:'#1478b8',x:0, y:0,w:2, h:2},
-  {id:'plantbed',   label:'Plant Bed',                     col:'rgba(74,124,63,0.18)',  border:'#4a7c3f',x:2, y:0,w:5, h:2},
-  {id:'lemon',      label:'Lemon Tree',                    col:'rgba(234,179,8,0.18)',  border:'#eab308',x:7, y:0,w:2, h:2},
-  {id:'stairs',     label:'Spiral Staircase',              col:'rgba(139,92,246,0.25)', border:'#8b5cf6',x:9, y:0,w:5, h:2},
-  {id:'pondedge',   label:'Pond Edge (Back Garden Side)',  col:'rgba(20,184,166,0.15)', border:'#14b8a6',x:0, y:2,w:2, h:3},
-  {id:'gate',       label:'Door to Back Garden',           col:'rgba(20,184,166,0.28)', border:'#14b8a6',x:0, y:5,w:2, h:2},
-  {id:'border',     label:'Border Path (Back Garden Side)',col:'rgba(74,124,63,0.18)',  border:'#4a7c3f',x:0, y:7,w:8, h:1},
-  {id:'steps',      label:'Steps',                         col:'rgba(139,92,246,0.2)',  border:'#8b5cf6',x:8, y:7,w:2, h:1},
-  {id:'seating',    label:'Sitting Area',                  col:'rgba(217,119,6,0.25)',  border:'#d97706',x:10,y:6,w:4, h:2},
-  {id:'patio',      label:'Patio',                         col:'rgba(107,114,128,0.12)',border:'#9ca3af',x:0, y:0,w:14,h:8},
+  {id:'pond',       label:'Pond',                          col:'rgba(20,120,184,0.28)', border:'#1478b8',x:0, y:0,w:2, h:2, surface:'water'},
+  {id:'plantbed',   label:'Plant Bed',                     col:'rgba(74,124,63,0.18)',  border:'#4a7c3f',x:2, y:0,w:5, h:2, surface:'bark'},
+  {id:'lemon',      label:'Lemon Tree',                    col:'rgba(234,179,8,0.18)',  border:'#eab308',x:7, y:0,w:2, h:2, surface:'bark'},
+  {id:'stairs',     label:'Spiral Staircase',              col:'rgba(139,92,246,0.25)', border:'#8b5cf6',x:9, y:0,w:5, h:2, surface:'tile'},
+  {id:'pondedge',   label:'Pond Edge (Back Garden Side)',  col:'rgba(20,184,166,0.15)', border:'#14b8a6',x:0, y:2,w:2, h:3, surface:'bark'},
+  {id:'gate',       label:'Door to Back Garden',           col:'rgba(20,184,166,0.28)', border:'#14b8a6',x:0, y:5,w:2, h:2, surface:'tile'},
+  {id:'border',     label:'Border Path (Back Garden Side)',col:'rgba(74,124,63,0.18)',  border:'#4a7c3f',x:0, y:7,w:8, h:1, surface:'bark'},
+  {id:'steps',      label:'Steps',                         col:'rgba(139,92,246,0.2)',  border:'#8b5cf6',x:8, y:7,w:2, h:1, surface:'tile'},
+  {id:'seating',    label:'Sitting Area',                  col:'rgba(217,119,6,0.25)',  border:'#d97706',x:10,y:6,w:4, h:2, surface:'tile'},
+  {id:'patio',      label:'Patio',                         col:'rgba(107,114,128,0.12)',border:'#9ca3af',x:0, y:0,w:14,h:8, surface:'tile'},
 ];
 
 export const COURTYARD_DEFAULT={
@@ -76,19 +76,19 @@ export const HERBGARDEN_DEFAULT={
 
 export const INDOOR_ZONES=[
   // Living room — large main space with floor plants around the sofa
-  {id:'living',   label:'Living Room',           col:'rgba(59,130,246,0.10)', border:'#3b82f6',x:0, y:0,w:10,h:5},
+  {id:'living',   label:'Living Room',           col:'rgba(59,130,246,0.10)', border:'#3b82f6',x:0, y:0,w:10,h:5, surface:'indoor'},
   // Patio door side — large monstera + floor plants near the sliding doors to courtyard
-  {id:'patio',    label:'Patio Door Side',        col:'rgba(139,92,246,0.12)',border:'#8b5cf6',x:0, y:5,w:5, h:5},
+  {id:'patio',    label:'Patio Door Side',        col:'rgba(139,92,246,0.12)',border:'#8b5cf6',x:0, y:5,w:5, h:5, surface:'indoor'},
   // Living room window sill — long front window with hanging Tradescantia, ZZ plant, orchids
-  {id:'window',   label:'Window Sill & Hanging', col:'rgba(16,185,129,0.15)', border:'#10b981',x:5, y:5,w:5, h:2},
+  {id:'window',   label:'Window Sill & Hanging', col:'rgba(16,185,129,0.15)', border:'#10b981',x:5, y:5,w:5, h:2, surface:'indoor'},
   // Black bookcase / TV wall — bookcase with terrarium, plants on shelves, near TV
-  {id:'bookcase', label:'Bookcase & TV Wall',    col:'rgba(107,114,128,0.15)',border:'#6b7280',x:5, y:7,w:5, h:3},
+  {id:'bookcase', label:'Bookcase & TV Wall',    col:'rgba(107,114,128,0.15)',border:'#6b7280',x:5, y:7,w:5, h:3, surface:'indoor'},
   // Kitchen — L-shaped with sink, washing machine, marble counter
-  {id:'kitchen',  label:'Kitchen',               col:'rgba(234,179,8,0.12)', border:'#eab308',x:10,y:0,w:6, h:3},
+  {id:'kitchen',  label:'Kitchen',               col:'rgba(234,179,8,0.12)', border:'#eab308',x:10,y:0,w:6, h:3, surface:'tile'},
   // Kitchen bar / partition counter top — half-wall with Peace Lily, Anthurium, ZZ Plant on top
-  {id:'bar',      label:'Kitchen Bar Top',        col:'rgba(161,107,59,0.18)',border:'#a16b3b',x:10,y:3,w:6, h:2},
+  {id:'bar',      label:'Kitchen Bar Top',        col:'rgba(161,107,59,0.18)',border:'#a16b3b',x:10,y:3,w:6, h:2, surface:'tile'},
   // Kitchen window sill — window with orchid visible above the sink
-  {id:'kwindow',  label:'Kitchen Window Sill',   col:'rgba(16,185,129,0.12)', border:'#10b981',x:10,y:5,w:6, h:3},
+  {id:'kwindow',  label:'Kitchen Window Sill',   col:'rgba(16,185,129,0.12)', border:'#10b981',x:10,y:5,w:6, h:3, surface:'tile'},
   // Hallway — connecting area between rooms
-  {id:'hall',     label:'Hallway',               col:'rgba(236,72,153,0.12)', border:'#ec4899',x:10,y:8,w:6, h:2},
+  {id:'hall',     label:'Hallway',               col:'rgba(236,72,153,0.12)', border:'#ec4899',x:10,y:8,w:6, h:2, surface:'indoor'},
 ];

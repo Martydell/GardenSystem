@@ -1,9 +1,10 @@
 import React from 'react';
 import { OBJECT_TYPES } from '../data/objects.js';
+import { surfaceStyle } from '../data/surfaces.js';
 import { INDOOR_PHOTOS, STATIC_PHOTO_URLS } from '../data/plants.js';
 import { ThemeCtx, getCustomPhoto, getUrgency, plantCategory, resizeImageToDataURL, wikiThumb } from '../utils.js';
 
-export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPos,defaultText,defaultObjects,allPlants,careLog,onSelect,fullHeight=false,highlightPlantId=null}){
+export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPos,defaultText,defaultObjects,defaultSurface,allPlants,careLog,onSelect,fullHeight=false,highlightPlantId=null}){
   const T=React.useContext(ThemeCtx);
   const [pos,setPos]=React.useState(()=>{
     try{
@@ -602,8 +603,9 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                   :obj?'2px solid '+T.sub
                   :paintC?'2px solid '+paintC
                   :(zone?'1px solid '+zone.border:'1px dashed '+T.border);
-                // Background
-                const bg=isDisabled?'rgba(0,0,0,0.35)':(plant||obj)?'transparent':(paintC||zone?.col||T.surface);
+                // Ground texture — real material per zone (paving, bark, water, decking, soil,
+                // grass, gravel, indoor floor), falling back to the map's overall default surface.
+                const surf=surfaceStyle(zone?.surface||defaultSurface||'tile');
                 // Cursor
                 const cursor=mode==='zones'?'crosshair':mode==='shape'?'pointer':mode==='paint'?'crosshair':mode==='label'?'text':(plant||obj)?'grab':'default';
                 // Zone-draw selection highlight
@@ -698,7 +700,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                     }
                     style={{width:size,height:size,borderRadius:8,overflow:'hidden',position:'relative',
                       cursor,
-                      background:bg,
+                      ...(isDisabled?{background:'rgba(0,0,0,0.35)'}:surf),
                       border,
                       transition:'border-color .12s,box-shadow .12s',
                       userSelect:'none',
@@ -708,6 +710,10 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                       position:'absolute',inset:0,display:'flex',alignItems:'center',
                       justifyContent:'center',fontSize:16,color:'rgba(255,255,255,0.35)',
                       userSelect:'none',pointerEvents:'none',zIndex:2}}>&#x2715;</div>}
+                    {/* Zone/paint colour wash over the ground texture — only visible without a
+                        full-bleed plant photo on top; same tint values as before, now layered
+                        over real ground texture instead of the bare page background. */}
+                    {!isDisabled&&!plant&&(paintC||zone?.col)&&<div style={{position:'absolute',inset:0,background:paintC||zone.col,zIndex:0,pointerEvents:'none'}}/>}
                     {/* Paint colour tint on painted cells (shows even with plant) */}
                     {!isDisabled&&paintC&&plant&&<div style={{position:'absolute',inset:0,background:paintC,opacity:0.22,zIndex:0,pointerEvents:'none'}}/>}
                     {/* Single-plant cell: full photo + name */}

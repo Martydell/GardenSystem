@@ -924,7 +924,7 @@ export function Catalogue(){
               <MapGrid storageKey={area+'-map'} cols={mapCfg.cols} rows={mapCfg.rows} size={mapCfg.size}
                 zones={currentArea.zones} defaultFilter={currentArea.defaultFilter}
                 defaultPos={currentArea.defaultPos} defaultText={currentArea.defaultText}
-                defaultObjects={currentArea.defaultObjects}
+                defaultObjects={currentArea.defaultObjects} defaultSurface={currentArea.defaultSurface}
                 allPlants={activePlants} careLog={careLog} onSelect={setSelected} fullHeight={mapFull}
                 highlightPlantId={highlightPlantId}/>
             </React.Suspense>
