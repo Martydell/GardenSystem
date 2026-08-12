@@ -26,11 +26,26 @@ const HDR_BY_TYPE = {
   hydro:'&#x1F9EA; Greenhouse &amp; Hydroponics', produce:'&#x1F345; Herbs &amp; Seasonal Produce',
 };
 
+// Every valid top-level tab — used to reject a stale/corrupted localStorage value on load.
+const VALID_GROUPS = new Set(['overview','identify','flashcards', ...GROUPS.map(g=>g.key)]);
+
 export function Catalogue(){
   const [dark,    setDark]    = React.useState(true);
-  const [group,   setGroup]   = React.useState('overview');
-  const [area,    setArea]    = React.useState(null);
-  const [areaTab, setAreaTab] = React.useState('plants');
+  const [group,   setGroup]   = React.useState(()=>{
+    try{ const g=localStorage.getItem('nav-group'); return VALID_GROUPS.has(g)?g:'overview'; }catch{ return 'overview'; }
+  });
+  const [area,    setArea]    = React.useState(()=>{
+    try{ return localStorage.getItem('nav-area')||null; }catch{ return null; }
+  });
+  const [areaTab, setAreaTab] = React.useState(()=>{
+    try{ return localStorage.getItem('nav-area-tab')||'plants'; }catch{ return 'plants'; }
+  });
+  // Keep refresh landing on whatever tab/zone the user was last viewing, rather than
+  // always resetting to Overview — mirrors the localStorage pattern used everywhere
+  // else in this component (careLog, notes, mapSettings, etc).
+  React.useEffect(()=>{ try{ localStorage.setItem('nav-group',group); }catch{} },[group]);
+  React.useEffect(()=>{ try{ if(area) localStorage.setItem('nav-area',area); else localStorage.removeItem('nav-area'); }catch{} },[area]);
+  React.useEffect(()=>{ try{ localStorage.setItem('nav-area-tab',areaTab); }catch{} },[areaTab]);
   const [highlightPlantId, setHighlightPlantId] = React.useState(null);
   const [mapFull, setMapFull] = React.useState(false);
   const [showMapSettings, setShowMapSettings] = React.useState(false);

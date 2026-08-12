@@ -60,6 +60,7 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
   const [isPainting,setIsPainting]=React.useState(false);
   const [editCell,setEditCell]=React.useState(null);
   const [editText,setEditText]=React.useState('');
+  const [editingObjectId,setEditingObjectId]=React.useState(null); // opens the rotate/scale popover
   const [disabledCells,setDisabledCells]=React.useState(()=>{
     try{return new Set(JSON.parse(localStorage.getItem(storageKey+'-disabled')||'[]'));}
     catch{return new Set();}
@@ -191,8 +192,8 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
   function save(p){setPos(p);try{localStorage.setItem(storageKey,JSON.stringify(p));}catch{}}
   // Cells hold a comma-separated list of plant ids, e.g. "33,60" — a mixed pot with two species.
   // Single-plant cells are just one id with no comma (backward compatible with older saved layouts).
+  // Plants may freely share a cell with each other and with furniture objects — no collision check.
   function placeAt(pid,x,y,fromCell=null){
-    if(objectAt(x,y)) return;
     const key=`${x},${y}`;
     const pidStr=String(pid);
     const existing=(pos[key]||'').split(',').filter(Boolean);
@@ -205,27 +206,14 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
     }
     save(next);
   }
-  // Drops a freshly-dragged (not yet placed) plant into the free cell nearest to
-  // where it was actually dropped, so the user doesn't have to aim for one exact
-  // empty cell but also doesn't always get shoved to the zone's top-left corner —
-  // falls back to the drop point itself (merging into a pot) if the zone is full.
-  function nearestFreeCell(zone,hintX,hintY,isFree){
-    const zp=getZonePos(zone);
-    let best=null,bestDist=Infinity;
-    for(let y=zp.y;y<zp.y+zone.h;y++){
-      for(let x=zp.x;x<zp.x+zone.w;x++){
-        const key=`${x},${y}`;
-        if(disabledCells.has(key)||!isFree(key,x,y))continue;
-        const dist=(x-hintX)**2+(y-hintY)**2;
-        if(dist<bestDist){bestDist=dist;best={x,y};}
-      }
-    }
-    return best;
-  }
+  // Places a freshly-dragged (not yet placed) plant at the exact cell under the
+  // cursor, clamped to the zone's bounds. Plants and objects can freely share a
+  // cell — there's no "find the nearest free cell" search any more.
   function placeInZone(pid,zone,hintX,hintY){
-    const cell=nearestFreeCell(zone,hintX,hintY,(key,x,y)=>!pos[key]&&!objectAt(x,y));
-    if(cell){ placeAt(pid,cell.x,cell.y); return; }
-    placeAt(pid,hintX,hintY);
+    const zp=getZonePos(zone);
+    const x=Math.max(zp.x,Math.min(hintX,zp.x+zone.w-1));
+    const y=Math.max(zp.y,Math.min(hintY,zp.y+zone.h-1));
+    placeAt(pid,x,y);
   }
   function removeCell(x,y,pid=null){
     const key=`${x},${y}`;
@@ -236,8 +224,10 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
     save(n);
   }
 
-  // Objects (furniture, heaters, etc.) — footprint-aware placement layer, separate from plants.
-  // Mutually exclusive with plants and other objects across their whole footprint.
+  // Objects (furniture, heaters, etc.) — each instance also carries a free rotation
+  // (`rot`, degrees) and visual `scale` (0.4–1). Placement allows free overlap with
+  // plants and other objects — the footprint (w,h from OBJECT_TYPES) is only used to
+  // size the tile and keep its anchor cell within the grid, not to block placement.
   function saveObjects(o){setObjects(o);try{localStorage.setItem(storageKey+'-objects',JSON.stringify(o));}catch{}}
   function objectAt(x,y){
     return objects.find(o=>{
@@ -246,54 +236,37 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
       return x>=o.x&&x<o.x+w&&y>=o.y&&y<o.y+h;
     })||null;
   }
-  function footprintFree(typeId,x,y,excludeId=null){
-    const t=OBJECT_TYPES.find(ot=>ot.id===typeId);
-    const w=t?t.w:1,h=t?t.h:1;
-    if(x<0||y<0||x+w>cols||y+h>rows) return false;
-    for(let yy=y;yy<y+h;yy++){
-      for(let xx=x;xx<x+w;xx++){
-        const key=`${xx},${yy}`;
-        if(disabledCells.has(key)) return false;
-        if(pos[key]) return false;
-        const occ=objectAt(xx,yy);
-        if(occ&&occ.id!==excludeId) return false;
-      }
-    }
-    return true;
-  }
-  function placeObjectAt(typeId,x,y,fromId=null,force=false){
+  function placeObjectAt(typeId,x,y,fromId=null){
     const t=OBJECT_TYPES.find(ot=>ot.id===typeId);
     const w=t?t.w:1,h=t?t.h:1;
     const cx=Math.max(0,Math.min(x,cols-w)),cy=Math.max(0,Math.min(y,rows-h));
-    if(!force&&!footprintFree(typeId,cx,cy,fromId)) return;
+    const existing=fromId?objects.find(o=>o.id===fromId):null;
     const next=objects.filter(o=>o.id!==fromId);
-    next.push({id:fromId||('obj-'+cx+'-'+cy+'-'+Date.now()+Math.random().toString(36).slice(2,6)),typeId,x:cx,y:cy});
+    next.push({
+      id:fromId||('obj-'+cx+'-'+cy+'-'+Date.now()+Math.random().toString(36).slice(2,6)),
+      typeId,x:cx,y:cy,
+      rot:existing?existing.rot||0:0,
+      scale:existing?existing.scale||1:1,
+    });
     saveObjects(next);
   }
-  // Finds the free top-left anchor for typeId's footprint nearest to the drop point,
-  // scanning only positions where the whole footprint fits within the zone's bounds.
-  function nearestFreeFootprint(zone,typeId,hintX,hintY,excludeId=null){
-    const zp=getZonePos(zone);
+  function placeObjectInZone(typeId,zone,hintX,hintY){
     const t=OBJECT_TYPES.find(ot=>ot.id===typeId);
     const w=t?t.w:1,h=t?t.h:1;
-    let best=null,bestDist=Infinity;
-    for(let y=zp.y;y<=zp.y+zone.h-h;y++){
-      for(let x=zp.x;x<=zp.x+zone.w-w;x++){
-        if(!footprintFree(typeId,x,y,excludeId))continue;
-        const dist=(x-hintX)**2+(y-hintY)**2;
-        if(dist<bestDist){bestDist=dist;best={x,y};}
-      }
-    }
-    return best;
-  }
-  function placeObjectInZone(typeId,zone,hintX,hintY){
-    const cell=nearestFreeFootprint(zone,typeId,hintX,hintY);
-    if(cell){ placeObjectAt(typeId,cell.x,cell.y); return; }
     const zp=getZonePos(zone);
-    placeObjectAt(typeId,zp.x,zp.y,null,true);
+    const x=Math.max(zp.x,Math.min(hintX,zp.x+zone.w-w));
+    const y=Math.max(zp.y,Math.min(hintY,zp.y+zone.h-h));
+    placeObjectAt(typeId,x,y);
+  }
+  function rotateObject(id,rot){
+    saveObjects(objects.map(o=>o.id===id?{...o,rot:((rot%360)+360)%360}:o));
+  }
+  function scaleObject(id,scale){
+    saveObjects(objects.map(o=>o.id===id?{...o,scale}:o));
   }
   function removeObject(id){
     saveObjects(objects.filter(o=>o.id!==id));
+    setEditingObjectId(prev=>prev===id?null:prev);
   }
 
   function exportLayout(){
@@ -674,7 +647,6 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                           setHov(null);
                           return;
                         }
-                        if(objectAt(x,y)){ setHov(null); return; }
                         const pid=e.dataTransfer.getData('plantId');
                         const fromCell=e.dataTransfer.getData('fromCell');
                         if(pid)placeAt(pid,x,y,fromCell||null);
@@ -839,36 +811,85 @@ export function MapGrid({storageKey,cols,rows,size,zones,defaultFilter,defaultPo
                 );
               }))}
             </div>
-            {/* Object overlays — footprint-sized tiles, draggable in place mode, double-click to remove */}
+            {/* Object overlays — footprint-sized tiles, freely rotatable/scalable, draggable in
+                place mode, click to open rotate/size controls, double-click to remove */}
             {objects.map(o=>{
               const t=OBJECT_TYPES.find(ot=>ot.id===o.typeId);
               if(!t)return null;
-              return(
-                <div key={o.id}
-                  draggable={mode==='place'}
-                  onDragStart={mode==='place'?e=>{
-                    e.dataTransfer.setData('objectTypeId',o.typeId);
-                    e.dataTransfer.setData('fromObjectId',o.id);
-                    setDragId('obj:'+o.id);
-                    e.stopPropagation();
-                  }:undefined}
-                  onDragEnd={()=>setDragId(null)}
-                  onDoubleClick={()=>{if(mode==='place')removeObject(o.id);}}
-                  title={t.label+' — drag to move, double-click to remove'}
-                  style={{
-                    position:'absolute',
-                    left:o.x*(size+GP),top:o.y*(size+GP),
-                    width:t.w*(size+GP)-GP,height:t.h*(size+GP)-GP,
-                    borderRadius:8,border:'2px solid '+T.sub,background:T.surface,
-                    zIndex:2,cursor:mode==='place'?'grab':'default',
-                    display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,
-                    userSelect:'none'}}>
-                  <span style={{fontSize:Math.round(size*0.32)}}>{t.icon}</span>
-                  <span style={{fontSize:9,color:T.text,fontWeight:700,textAlign:'center',lineHeight:1.1,
-                    padding:'0 2px',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>
-                    {t.label}
-                  </span>
-                </div>
+              const rot=o.rot||0, scale=o.scale||1;
+              const tileW=t.w*(size+GP)-GP, tileH=t.h*(size+GP)-GP;
+              const isEditingThis=editingObjectId===o.id;
+              return (
+                <React.Fragment key={o.id}>
+                  <div
+                    draggable={mode==='place'}
+                    onDragStart={mode==='place'?e=>{
+                      e.dataTransfer.setData('objectTypeId',o.typeId);
+                      e.dataTransfer.setData('fromObjectId',o.id);
+                      setDragId('obj:'+o.id);
+                      e.stopPropagation();
+                    }:undefined}
+                    onDragEnd={()=>setDragId(null)}
+                    onClick={e=>{
+                      if(mode!=='place')return;
+                      e.stopPropagation();
+                      setEditingObjectId(prev=>prev===o.id?null:o.id);
+                    }}
+                    onDoubleClick={e=>{e.stopPropagation();if(mode==='place')removeObject(o.id);}}
+                    title={t.label+' — click to rotate/resize, drag to move, double-click to remove'}
+                    style={{
+                      position:'absolute',
+                      left:o.x*(size+GP),top:o.y*(size+GP),
+                      width:tileW,height:tileH,
+                      borderRadius:8,border:'2px solid '+(isEditingThis?T.accent:T.sub),background:T.surface,
+                      zIndex:isEditingThis?7:2,cursor:mode==='place'?'grab':'default',
+                      display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,
+                      userSelect:'none',
+                      transform:`rotate(${rot}deg) scale(${scale})`,transformOrigin:'center'}}>
+                    <span style={{fontSize:Math.round(size*0.32)}}>{t.icon}</span>
+                    <span style={{fontSize:9,color:T.text,fontWeight:700,textAlign:'center',lineHeight:1.1,
+                      padding:'0 2px',overflow:'hidden',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>
+                      {t.label}
+                    </span>
+                  </div>
+                  {/* Rotate/scale/remove popover — opens on click, independent of the tile's own transform */}
+                  {isEditingThis&&(
+                    <div onClick={e=>e.stopPropagation()} style={{
+                      position:'absolute',zIndex:50,
+                      left:o.x*(size+GP),top:o.y*(size+GP)+tileH+6,
+                      width:158,background:'rgba(0,0,0,0.85)',backdropFilter:'blur(3px)',
+                      borderRadius:8,padding:'8px 10px',boxShadow:T.shadowLg}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+                        <span style={{fontSize:10,fontWeight:700,color:'#fff'}}>{t.icon} {t.label}</span>
+                        <button onClick={()=>setEditingObjectId(null)} aria-label="Close"
+                          style={{background:'none',border:'none',color:'#fff',fontSize:13,cursor:'pointer',lineHeight:1,padding:0}}>&#x2715;</button>
+                      </div>
+                      <div style={{fontSize:9,color:'#cbd5c8',marginBottom:2,display:'flex',justifyContent:'space-between'}}>
+                        <span>&#x1F504; Rotate</span><span>{rot}&deg;</span>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:4,marginBottom:8}}>
+                        <button onClick={()=>rotateObject(o.id,rot-15)} aria-label="Rotate 15 degrees left"
+                          style={{width:20,height:20,flexShrink:0,borderRadius:4,border:'none',background:'rgba(255,255,255,0.15)',color:'#fff',fontSize:11,cursor:'pointer'}}>&#x21B6;</button>
+                        <input type="range" min="0" max="359" step="1" value={rot}
+                          onChange={e=>rotateObject(o.id,Number(e.target.value))}
+                          style={{flex:1,accentColor:T.accent}}/>
+                        <button onClick={()=>rotateObject(o.id,rot+15)} aria-label="Rotate 15 degrees right"
+                          style={{width:20,height:20,flexShrink:0,borderRadius:4,border:'none',background:'rgba(255,255,255,0.15)',color:'#fff',fontSize:11,cursor:'pointer'}}>&#x21B7;</button>
+                      </div>
+                      <div style={{fontSize:9,color:'#cbd5c8',marginBottom:2,display:'flex',justifyContent:'space-between'}}>
+                        <span>&#x1F50D; Size</span><span>{Math.round(scale*100)}%</span>
+                      </div>
+                      <input type="range" min="0.4" max="1" step="0.05" value={scale}
+                        onChange={e=>scaleObject(o.id,Number(e.target.value))}
+                        style={{width:'100%',accentColor:T.accent,marginBottom:8}}/>
+                      <button onClick={()=>removeObject(o.id)} style={{
+                        width:'100%',padding:'4px 0',background:'rgba(239,68,68,0.85)',border:'none',
+                        borderRadius:5,color:'#fff',fontSize:10,fontWeight:600,cursor:'pointer'}}>
+                        &#x1F5D1;&#xFE0F; Remove
+                      </button>
+                    </div>
+                  )}
+                </React.Fragment>
               );
             })}
             {/* Zone label overlays — draggable in place mode, editable/deletable in zones mode */}

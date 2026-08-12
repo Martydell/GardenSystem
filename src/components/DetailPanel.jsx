@@ -1,6 +1,7 @@
 import React from 'react';
 import { CareActionsBar, CompanionPanel, HarvestLog, PestNotes } from './Modals.jsx';
 import { CareHistorySparkline } from './PlantCards.jsx';
+import { GrowthTimeline } from './GrowthTimeline.jsx';
 import { INDOOR_PHOTOS, STATIC_PHOTO_URLS, TAG_C } from '../data/plants.js';
 import { MEDICINAL_INFO, STORAGE_INFO, ThemeCtx, addPhotoToHistory, badgeForType, fmtDate, getCustomPhoto, getPhotoHistory, isFloweringNow, plantCategory, removePhotoFromHistory, repotSeason, resizeImageToDataURL, useIsMobile, wikiThumb } from '../utils.js';
 
@@ -81,7 +82,7 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
             background:'rgba(0,0,0,0.5)',border:'none',color:'#fff',borderRadius:'50%',
             width:28,height:28,cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center'}}>&#x2715;</button>
         </div>
-        {history.length>1&&(
+        {history.length>=1&&(
           <div style={{display:'flex',gap:6,padding:'10px 20px 0',overflowX:'auto'}}>
             {history.map((h,i)=>(
               <button key={h.ts||'legacy'} onClick={()=>setHistoryOpenAt(i)} title={h.ts?fmtDate(h.ts):'Earlier'}
@@ -107,6 +108,8 @@ export function DetailPanel({plant, onClose, careLog, onLog, onPhotoZoom, notes,
             <div style={{color:T.sub,fontSize:12}}>{plant.family} &bull; {plant.origin}</div>
           </div>
           {plant.desc&&<p style={{color:T.sub,fontSize:13,lineHeight:1.6,margin:'0 0 16px'}}>{plant.desc}</p>}
+
+          <GrowthTimeline plant={plant}/>
 
           {/* Care action buttons */}
           <div style={{marginBottom:16}}>

@@ -299,6 +299,50 @@ export function removePhotoFromHistory(id,ts){
   return history;
 }
 
+// ---- Growth timeline (seedling -> maturity), backed by Netlify Blobs via netlify/functions/timeline.js ----
+export const GROWTH_STAGES = ['Seedling','Sprouting','Vegetative','Flowering','Fruiting','Mature'];
+
+export function fmtCalendarDate(iso){
+  if(!iso) return '';
+  const [y,m,d]=iso.split('-').map(Number);
+  return new Date(y,m-1,d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+}
+
+export function getTimelinePin(){ try{ return localStorage.getItem('timeline-pin')||''; }catch{ return ''; } }
+export function setTimelinePin(pin){ try{ if(pin) localStorage.setItem('timeline-pin',pin); else localStorage.removeItem('timeline-pin'); }catch{} }
+
+export async function fetchGrowthTimeline(plantId){
+  const res=await fetch(`/.netlify/functions/timeline?plantId=${encodeURIComponent(plantId)}`);
+  const data=await res.json();
+  if(!res.ok) throw new Error(data.error||'Could not load growth timeline.');
+  return (data.entries||[]).map(e=>({
+    ...e,
+    photoUrl:`/.netlify/functions/timeline?action=photo&plantId=${encodeURIComponent(plantId)}&ts=${e.ts}`,
+  }));
+}
+
+export async function uploadGrowthPhoto(plantId,{stage,date,dataUrl},pin){
+  const res=await fetch('/.netlify/functions/timeline',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-upload-pin':pin},
+    body:JSON.stringify({plantId,stage,date,image:dataUrl}),
+  });
+  const data=await res.json();
+  if(!res.ok) throw new Error(data.error||'Upload failed.');
+  return data.entry;
+}
+
+export async function deleteGrowthPhoto(plantId,ts,pin){
+  const res=await fetch('/.netlify/functions/timeline',{
+    method:'DELETE',
+    headers:{'Content-Type':'application/json','x-upload-pin':pin},
+    body:JSON.stringify({plantId,ts}),
+  });
+  const data=await res.json();
+  if(!res.ok) throw new Error(data.error||'Delete failed.');
+  return data.entries;
+}
+
 export function resizeImageToDataURL(file,maxW=1400,quality=0.68){
   return new Promise(resolve=>{
     const img=new Image(),url=URL.createObjectURL(file);
