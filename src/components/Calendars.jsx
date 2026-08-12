@@ -101,6 +101,16 @@ export function CareSummaryPanel({allPlants, careLog, pestLog, onSelect}){
 // tap done and it's gone.
 export function TodaysChecklist({allPlants, careLog, pestLog, onLog, onResolvePest, onSelect, streak=0}){
   const T = React.useContext(ThemeCtx);
+  const [completingKeys, setCompletingKeys] = React.useState({});
+
+  function complete(key, action){
+    setCompletingKeys(c=>({...c,[key]:true}));
+    setTimeout(()=>{
+      action();
+      setCompletingKeys(c=>{ const n={...c}; delete n[key]; return n; });
+    }, 360);
+  }
+
   const items = [];
   allPlants.forEach(p=>{
     const wD = daysUntilDue(p, careLog, 'watered');
@@ -114,17 +124,25 @@ export function TodaysChecklist({allPlants, careLog, pestLog, onLog, onResolvePe
   });
   const activePests = (pestLog||[]).filter(e=>!e.resolved);
 
-  const row = (key, icon, color, text, onDone, doneLabel) => (
-    <div key={key} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 4px',
-      borderBottom:'1px solid '+T.border}}>
-      <span style={{fontSize:16,flexShrink:0}} dangerouslySetInnerHTML={{__html:icon}}/>
-      <span style={{flex:1,fontSize:13,color:T.text,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{text}</span>
-      <button onClick={onDone} style={{flexShrink:0,padding:'5px 12px',borderRadius:20,border:'1px solid '+color,
-        background:'transparent',color,fontSize:12,fontWeight:600,cursor:'pointer'}}>
-        {doneLabel||'✓ Done'}
-      </button>
-    </div>
-  );
+  const row = (key, icon, color, text, onDone, doneLabel) => {
+    const isDone = !!completingKeys[key];
+    return (
+      <div key={key} className={'checklist-row'+(isDone?' is-done':'')} style={{position:'relative',display:'flex',alignItems:'center',gap:10,padding:'8px 4px',
+        borderBottom:'1px solid '+T.border}}>
+        <span style={{fontSize:16,flexShrink:0}} dangerouslySetInnerHTML={{__html:icon}}/>
+        <span style={{flex:1,fontSize:13,color:T.text,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{text}</span>
+        <button onClick={()=>complete(key,onDone)} disabled={isDone} style={{flexShrink:0,padding:'5px 12px',borderRadius:20,border:'1px solid '+color,
+          background:'transparent',color,fontSize:12,fontWeight:600,cursor:isDone?'default':'pointer'}}>
+          {doneLabel||'✓ Done'}
+        </button>
+        {isDone&&(
+          <span className="checklist-check-pop" style={{position:'absolute',right:14,top:-4,fontSize:16,color:'#22c55e',pointerEvents:'none'}}>
+            &#x2705;
+          </span>
+        )}
+      </div>
+    );
+  };
 
   const total = items.length + activePests.length;
 

@@ -473,6 +473,11 @@ export function Catalogue(){
     @keyframes urgPulse{0%,100%{box-shadow:0 0 0 0 currentColor}60%{box-shadow:0 0 0 5px transparent}}
     @keyframes chipPop{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes rowDone{0%{opacity:1;transform:translateX(0) scale(1);max-height:60px}100%{opacity:0;transform:translateX(16px) scale(0.97);max-height:0}}
+    @keyframes checkFloat{0%{opacity:0;transform:translateY(4px) scale(0.6)}30%{opacity:1;transform:translateY(-4px) scale(1.2)}70%{opacity:1;transform:translateY(-14px) scale(1.05)}100%{opacity:0;transform:translateY(-26px) scale(1)}}
+    .checklist-row{overflow:hidden;}
+    .checklist-row.is-done{animation:rowDone 0.38s ease forwards;pointer-events:none;}
+    .checklist-check-pop{animation:checkFloat 0.55s ease forwards;}
     .plant-card{transition:transform 0.22s ease,box-shadow 0.22s ease;cursor:pointer;will-change:transform;}
     .plant-card:hover{transform:translateY(-6px) scale(1.015);box-shadow:0 12px 32px rgba(0,0,0,0.45);}
     .plant-card:active{transform:translateY(-2px) scale(1.005);}
