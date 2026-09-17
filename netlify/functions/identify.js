@@ -55,13 +55,19 @@ export const handler = async (event) => {
   }
 
   const data = await response.json();
-  const results = (data.results || []).slice(0, 5).map(r => ({
-    score: Math.round((r.score || 0) * 100),
-    scientificName: (r.species && r.species.scientificNameWithoutAuthor) || 'Unknown',
-    commonNames: (r.species && r.species.commonNames) || [],
-    family: (r.species && r.species.family && r.species.family.scientificNameWithoutAuthor) || '',
-    image: (r.images && r.images[0] && r.images[0].url && (r.images[0].url.s || r.images[0].url.m)) || null,
-  }));
+  const results = (data.results || [])
+    .slice(0, 10)
+    .map(r => ({
+      score: Math.round((r.score || 0) * 100),
+      scientificName: (r.species && r.species.scientificNameWithoutAuthor) || 'Unknown',
+      commonNames: (r.species && r.species.commonNames) || [],
+      family: (r.species && r.species.family && r.species.family.scientificNameWithoutAuthor) || '',
+      image: (r.images && r.images[0] && r.images[0].url && (r.images[0].url.s || r.images[0].url.m)) || null,
+    }))
+    // Drop candidates the classifier gave essentially no weight to — a rounded 0%
+    // isn't a real option to pick from, just algorithmic padding. Keep at least
+    // the top result even if it alone rounds to 0.
+    .filter((r, i) => i === 0 || r.score > 0);
 
   return {
     statusCode: 200,

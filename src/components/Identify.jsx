@@ -4,7 +4,7 @@ import { ThemeCtx, resizeImageToDataURL } from '../utils.js';
 const ORGANS = [['leaf','&#x1F343; Leaf'],['flower','&#x1F33A; Flower'],['fruit','&#x1F345; Fruit'],['bark','&#x1FAB5; Bark'],['other','&#x2753; Other']];
 const CATEGORIES = [['outdoor','&#x1F333; Outdoor'],['indoor','&#x1F3E0; Indoor'],['hydro','&#x1F9EA; Hydro'],['produce','&#x1F345; Produce']];
 
-function ResultCard({result, onAddWish, onAddCustomPlant, T}){
+function ResultCard({result, best, onAddWish, onAddCustomPlant, T}){
   const [wishAdded,setWishAdded]=React.useState(false);
   const [showForm,setShowForm]=React.useState(false);
   const [name,setName]=React.useState(result.commonNames[0]||result.scientificName);
@@ -30,10 +30,11 @@ function ResultCard({result, onAddWish, onAddCustomPlant, T}){
         {result.image&&<img src={result.image} alt={result.commonNames[0]||result.scientificName} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
       </div>
       <div style={{flex:1,minWidth:0}}>
-        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:2}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:2,flexWrap:'wrap'}}>
           <span style={{fontWeight:700,color:T.text,fontSize:15}}>{result.commonNames[0]||result.scientificName}</span>
           <span style={{fontSize:11,fontWeight:700,color:'#fff',background:result.score>50?T.green:'#f59e0b',
             borderRadius:20,padding:'1px 8px'}}>{result.score}%</span>
+          {best&&<span style={{fontSize:10,fontWeight:700,color:T.accent,textTransform:'uppercase',letterSpacing:0.4}}>Best match</span>}
         </div>
         <div style={{fontStyle:'italic',color:T.sub,fontSize:13,marginBottom:4}}>{result.scientificName}</div>
         {result.family&&<div style={{fontSize:11,color:T.sub,marginBottom:8}}>{result.family}</div>}
@@ -162,8 +163,14 @@ export function IdentifyView({onAddWish, onAddCustomPlant}){
         <div style={{color:T.sub,fontSize:13}}>No matches found — try a clearer photo or a different part of the plant.</div>
       )}
 
+      {results&&results.length>1&&(
+        <div style={{color:T.sub,fontSize:12,marginBottom:10}}>
+          {results.length} possible matches — if the top one isn't right, pick another below.
+        </div>
+      )}
+
       {results&&results.length>0&&results.map((r,i)=>(
-        <ResultCard key={i} result={r} onAddWish={onAddWish} onAddCustomPlant={onAddCustomPlant} T={T}/>
+        <ResultCard key={i} result={r} best={i===0} onAddWish={onAddWish} onAddCustomPlant={onAddCustomPlant} T={T}/>
       ))}
     </div>
   );
